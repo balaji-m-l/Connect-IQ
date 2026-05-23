@@ -1,4 +1,4 @@
-# ConnectionsFun 🔗
+# Connect-IQ
 
 A Streamlit web app that lets you upload your LinkedIn connections export, visualize your professional network through interactive charts, and chat with an AI assistant to get grounded, hallucination-free answers about your connections.
 
