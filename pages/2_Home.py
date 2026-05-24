@@ -4,27 +4,27 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from components.styles import inject_styles
-from components.sidebar import render_sidebar
+from components.nav import render_nav
 from utils.auth import is_authenticated, get_user_id
 from utils.data_processor import process_linkedin_file, save_connections, get_connections
 
 st.set_page_config(
-    page_title="ConnectionsFun – Dashboard",
+    page_title="Connect-IQ – Dashboard",
     page_icon="🔗",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-inject_styles()
+inject_styles(hide_sidebar=True)
 
 if not is_authenticated():
     st.switch_page("pages/1_Login.py")
 
-render_sidebar()
+render_nav(active="home")
 
 user_id = get_user_id()
 
-# ── Load / cache connections ─────────────────────────────────────────────────
+# ── Load / cache connections ──────────────────────────────────────────────────
 if (
     "connections_df" not in st.session_state
     or st.session_state.get("connections_user_id") != user_id
@@ -35,7 +35,7 @@ if (
 
 df: pd.DataFrame = st.session_state.connections_df
 
-# ── Page header ──────────────────────────────────────────────────────────────
+# ── Page header ───────────────────────────────────────────────────────────────
 hdr_l, hdr_r = st.columns([5, 1])
 with hdr_l:
     st.markdown(
@@ -45,13 +45,13 @@ with hdr_l:
         unsafe_allow_html=True,
     )
 with hdr_r:
-    if st.button("📤 Upload CSV", key="upload_btn", use_container_width=True):
+    if st.button("📤 Upload CSV", key="upload_toggle", use_container_width=True, type="primary"):
         st.session_state.show_uploader = not st.session_state.get("show_uploader", False)
 
-# ── Upload panel (toggles on button click) ───────────────────────────────────
+# ── Upload panel ──────────────────────────────────────────────────────────────
 if st.session_state.get("show_uploader", False):
     st.markdown(
-        '<div style="background:#F7F7F7;border-radius:14px;padding:24px 28px;'
+        '<div style="background:#F7F7F7;border-radius:14px;padding:28px 32px;'
         'margin:16px 0;border:1.5px dashed #DDDDDD;">',
         unsafe_allow_html=True,
     )
@@ -72,12 +72,14 @@ if st.session_state.get("show_uploader", False):
     )
 
     btn_col, cancel_col, _ = st.columns([1, 1, 5])
-
     with btn_col:
         process_clicked = st.button(
-            "Process & Save", key="process_btn", use_container_width=True, disabled=not uploaded
+            "Process & Save",
+            key="process_btn",
+            use_container_width=True,
+            type="primary",
+            disabled=not uploaded,
         )
-
     with cancel_col:
         if st.button("Cancel", key="cancel_upload", use_container_width=True):
             st.session_state.show_uploader = False
@@ -85,7 +87,6 @@ if st.session_state.get("show_uploader", False):
 
     if process_clicked and uploaded:
         parsed_df, parse_err = process_linkedin_file(uploaded)
-
         if parse_err:
             st.error(parse_err)
         else:
@@ -100,7 +101,6 @@ if st.session_state.get("show_uploader", False):
                 )
 
             inserted, dups, save_err = save_connections(user_id, parsed_df, progress_cb=_on_progress)
-
             progress_bar.empty()
             status.empty()
 
@@ -111,7 +111,6 @@ if st.session_state.get("show_uploader", False):
                 if dups:
                     parts.append(f"Skipped **{dups}** duplicate(s).")
                 st.success(" ".join(parts))
-                # Reload into session state and close panel
                 st.session_state.connections_df = get_connections(user_id)
                 st.session_state.connections_user_id = user_id
                 st.session_state.show_uploader = False
@@ -124,7 +123,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Refresh reference after possible upload
 df = st.session_state.get("connections_df", pd.DataFrame())
 
-# ── Empty state ──────────────────────────────────────────────────────────────
+# ── Empty state ───────────────────────────────────────────────────────────────
 if df.empty:
     st.markdown(
         '<div style="text-align:center;padding:80px 20px;background:#F7F7F7;border-radius:16px;">'
@@ -139,7 +138,7 @@ if df.empty:
     )
     st.stop()
 
-# ── Metrics row ──────────────────────────────────────────────────────────────
+# ── Metrics row ───────────────────────────────────────────────────────────────
 st.markdown("#### Network Overview")
 m1, m2, m3, m4 = st.columns(4)
 
@@ -169,7 +168,7 @@ with m4:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ── Shared Plotly layout ──────────────────────────────────────────────────────
+# ── Shared Plotly layout ───────────────────────────────────────────────────────
 _LAYOUT = dict(
     plot_bgcolor="white",
     paper_bgcolor="white",
@@ -223,7 +222,7 @@ with r1r:
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, use_container_width=True)
 
-# ── Row 2: Timeline | Company donut ──────────────────────────────────────────
+# ── Row 2: Timeline | Company donut ───────────────────────────────────────────
 r2l, r2r = st.columns(2, gap="medium")
 
 with r2l:
@@ -288,7 +287,7 @@ with r2r:
         fig.update_layout(**_LAYOUT, legend=dict(orientation="v", x=1.01, y=0.5))
         st.plotly_chart(fig, use_container_width=True)
 
-# ── Full connections table ────────────────────────────────────────────────────
+# ── Full connections table ─────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
 with st.expander("📋  View all connections", expanded=False):
     display = df.copy()
