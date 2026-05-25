@@ -108,21 +108,27 @@ logo_c, lf_c, feat_c, hiw_c, about_c, faq_c, rf_c, login_c, signup_c = st.column
 
 with logo_c:
     st.markdown(
+        '<a href="/" target="_self" style="text-decoration:none;color:inherit;">'
         '<p style="font-size:18px;font-weight:800;color:#FF385C;margin:0;'
-        'padding:6px 0 0;font-family:Inter,sans-serif;white-space:nowrap;">🔗 Connect-IQ</p>',
+        'padding:0;font-family:Inter,sans-serif;white-space:nowrap;line-height:1;">🔗 Connect-IQ</p>'
+        '</a>',
         unsafe_allow_html=True,
     )
 with feat_c:
     if st.button("Features", key="nav_feat"):
+        st.session_state["_scroll_to"] = "cf-features"
         st.switch_page("app.py")
 with hiw_c:
     if st.button("How it works", key="nav_hiw"):
+        st.session_state["_scroll_to"] = "cf-how-it-works"
         st.switch_page("app.py")
 with about_c:
     if st.button("About", key="nav_about"):
+        st.session_state["_about_scroll"] = "cf-about-top"
         st.switch_page("pages/4_About.py")
 with faq_c:
     if st.button("FAQ", key="nav_faq"):
+        st.session_state["_about_scroll"] = "cf-faq"
         st.switch_page("pages/4_About.py")
 with login_c:
     st.button("Log in", key="nav_login", type="secondary")

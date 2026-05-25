@@ -103,22 +103,26 @@ logo_c, lf_c, feat_c, hiw_c, about_c, faq_c, rf_c, login_c, signup_c = st.column
 with logo_c:
     st.markdown(
         '<p style="font-size:18px;font-weight:800;color:#FF385C;margin:0;'
-        'padding:6px 0 0;font-family:Inter,sans-serif;white-space:nowrap;">🔗 Connect-IQ</p>',
+        'padding:0;font-family:Inter,sans-serif;white-space:nowrap;line-height:1;">🔗 Connect-IQ</p>',
         unsafe_allow_html=True,
     )
 
 with feat_c:
-    st.button("Features", key="nav_feat")
+    if st.button("Features", key="nav_feat"):
+        st.session_state["_scroll_to"] = "cf-features"
 
 with hiw_c:
-    st.button("How it works", key="nav_hiw")
+    if st.button("How it works", key="nav_hiw"):
+        st.session_state["_scroll_to"] = "cf-how-it-works"
 
 with about_c:
     if st.button("About", key="nav_about"):
+        st.session_state["_about_scroll"] = "cf-about-top"
         st.switch_page("pages/4_About.py")
 
 with faq_c:
     if st.button("FAQ", key="nav_faq"):
+        st.session_state["_about_scroll"] = "cf-faq"
         st.switch_page("pages/4_About.py")
 
 with login_c:
@@ -225,6 +229,7 @@ with tc4:
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ── Features section (white bg, light cards) ──────────────────────────────────
+st.markdown('<div id="cf-features"></div>', unsafe_allow_html=True)
 st.markdown(
     '<div style="text-align:center;margin-bottom:44px;">'
     '<span style="display:inline-block;background:#FFE8EE;color:#FF385C;'
@@ -287,6 +292,7 @@ with fc3:
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ── How it works — light gray section, white cards, left-aligned ──────────────
+st.markdown('<div id="cf-how-it-works"></div>', unsafe_allow_html=True)
 st.markdown(
     """
     <div style="background:#F7F8FA;border-radius:20px;padding:64px 48px;margin:0 0 0;">
@@ -389,3 +395,13 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True,
 )
+
+# ── Anchor scroll ─────────────────────────────────────────────────────────────
+if st.session_state.get("_scroll_to"):
+    import streamlit.components.v1 as components
+    target = st.session_state.pop("_scroll_to")
+    components.html(
+        f'<script>window.parent.document.getElementById("{target}")'
+        f'.scrollIntoView({{behavior:"smooth",block:"start"}});</script>',
+        height=0,
+    )

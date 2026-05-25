@@ -13,11 +13,6 @@ st.set_page_config(
 
 inject_styles(hide_sidebar=True)
 
-if not is_authenticated():
-    st.switch_page("pages/1_Login.py")
-
-render_nav(active="about")
-
 # ── Page-level overrides ───────────────────────────────────────────────────────
 st.markdown(
     """
@@ -38,12 +33,85 @@ st.markdown(
         color: #111113 !important;
         font-size: .95rem !important;
     }
+    /* Marketing nav row */
+    div[data-testid="stHorizontalBlock"]:first-of-type {
+        gap: 4px !important; align-items: center !important;
+        padding: 14px 0 !important; background: #FFFFFF !important;
+        border-bottom: 1px solid #EBEBEB !important; margin-bottom: 0 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(3) .stButton > button,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(4) .stButton > button,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(5) .stButton > button,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(6) .stButton > button {
+        background: transparent !important; color: #484848 !important;
+        border: none !important; font-weight: 500 !important;
+        font-size: 14px !important; padding: 8px 14px !important;
+        box-shadow: none !important; white-space: nowrap !important; width: auto !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(3) .stButton > button:hover,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(4) .stButton > button:hover,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(5) .stButton > button:hover,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(6) .stButton > button:hover {
+        background: #F7F7F7 !important; color: #222222 !important;
+        transform: none !important; box-shadow: none !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(8) .stButton > button {
+        border: 1.5px solid #DDDDDD !important; color: #222222 !important;
+        background: transparent !important; font-weight: 600 !important;
+        font-size: 15px !important; padding: 10px 20px !important; white-space: nowrap !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(8) .stButton > button:hover {
+        background: #F7F7F7 !important; transform: none !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(9) .stButton > button {
+        background: #FF385C !important; color: #FFFFFF !important;
+        font-weight: 600 !important; border: none !important;
+        font-size: 15px !important; padding: 10px 22px !important; white-space: nowrap !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(9) .stButton > button:hover {
+        background: #E31C5F !important; transform: translateY(-1px) !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+# ── Nav ────────────────────────────────────────────────────────────────────────
+if is_authenticated():
+    render_nav(active="about")
+else:
+    logo_c, lf_c, feat_c, hiw_c, about_c, faq_c, rf_c, login_c, signup_c = st.columns(
+        [2.2, 1.6, 1.2, 1.6, 1.0, 0.8, 1.6, 1.1, 1.4]
+    )
+    with logo_c:
+        st.markdown(
+            '<p style="font-size:18px;font-weight:800;color:#FF385C;margin:0;'
+            'padding:0;font-family:Inter,sans-serif;white-space:nowrap;line-height:1;">🔗 Connect-IQ</p>',
+            unsafe_allow_html=True,
+        )
+    with feat_c:
+        if st.button("Features", key="nav_feat"):
+            st.session_state["_scroll_to"] = "cf-features"
+            st.switch_page("app.py")
+    with hiw_c:
+        if st.button("How it works", key="nav_hiw"):
+            st.session_state["_scroll_to"] = "cf-how-it-works"
+            st.switch_page("app.py")
+    with about_c:
+        st.button("About", key="nav_about")
+    with faq_c:
+        if st.button("FAQ", key="nav_faq"):
+            st.session_state["_about_scroll"] = "cf-faq"
+            st.rerun()
+    with login_c:
+        if st.button("Log in", key="nav_login", type="secondary"):
+            st.switch_page("pages/1_Login.py")
+    with signup_c:
+        if st.button("Sign up free", key="nav_signup", type="primary"):
+            st.switch_page("pages/1_Login.py")
+
 # ── Hero ──────────────────────────────────────────────────────────────────────
+st.markdown('<div id="cf-about-top"></div>', unsafe_allow_html=True)
 _, hero_col, _ = st.columns([1, 3, 1])
 with hero_col:
     st.markdown(
@@ -115,6 +183,7 @@ with tc4:
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ── FAQ ───────────────────────────────────────────────────────────────────────
+st.markdown('<div id="cf-faq"></div>', unsafe_allow_html=True)
 _, faq_col, _ = st.columns([0.5, 4, 0.5])
 with faq_col:
     st.markdown(
@@ -175,3 +244,13 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True,
 )
+
+# ── Anchor scroll ─────────────────────────────────────────────────────────────
+if st.session_state.get("_about_scroll"):
+    import streamlit.components.v1 as components
+    target = st.session_state.pop("_about_scroll")
+    components.html(
+        f'<script>window.parent.document.getElementById("{target}")'
+        f'.scrollIntoView({{behavior:"smooth",block:"start"}});</script>',
+        height=0,
+    )
