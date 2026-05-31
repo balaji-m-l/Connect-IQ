@@ -181,6 +181,9 @@ with form_col:
     # ── Create Account ────────────────────────────────────────────────────────
     with tab_signup:
         st.markdown("<br>", unsafe_allow_html=True)
+        full_name = st.text_input(
+            "Full name", key="su_name", placeholder="Your full name"
+        )
         new_email = st.text_input(
             "Email address", key="su_email", placeholder="you@example.com"
         )
@@ -194,7 +197,7 @@ with form_col:
         )
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Create Account", key="signup_btn", use_container_width=True, type="primary"):
-            if not new_email or not new_pw or not confirm_pw:
+            if not full_name or not new_email or not new_pw or not confirm_pw:
                 st.error("Please fill in all fields.")
             elif new_pw != confirm_pw:
                 st.error("Passwords do not match.")
@@ -202,7 +205,7 @@ with form_col:
                 st.error("Password must be at least 8 characters.")
             else:
                 with st.spinner("Creating your account…"):
-                    ok, msg = signup(new_email, new_pw)
+                    ok, msg = signup(new_email, new_pw, full_name)
                 if ok:
                     st.success(msg)
                 else:

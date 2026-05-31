@@ -340,6 +340,9 @@ html, body, [class*="css"] {{
 /* ── Alerts ── */
 .stAlert {{ border-radius: 10px !important; font-family: {FONT_STACK} !important; }}
 
+/* ── Hide "Press Enter to apply" hint on text inputs ── */
+[data-testid="InputInstructions"] {{ display: none !important; }}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {{ width: 5px; }}
 ::-webkit-scrollbar-track {{ background: transparent; }}

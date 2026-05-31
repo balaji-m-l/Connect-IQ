@@ -15,15 +15,26 @@ def login(email: str, password: str) -> tuple[bool, str | None]:
         return False, str(e)
 
 
-def signup(email: str, password: str) -> tuple[bool, str]:
+def signup(email: str, password: str, full_name: str = "") -> tuple[bool, str]:
     try:
         client = get_supabase_client()
-        response = client.auth.sign_up({"email": email, "password": password})
+        credentials: dict = {"email": email, "password": password}
+        if full_name.strip():
+            credentials["options"] = {"data": {"full_name": full_name.strip()}}
+        response = client.auth.sign_up(credentials)
         if response.user:
             return True, "Account created! Please check your email to verify, then sign in."
         return False, "Signup failed. Please try again."
     except Exception as e:
         return False, str(e)
+
+
+def get_display_name() -> str:
+    user = st.session_state.get("user")
+    if not user:
+        return ""
+    meta = getattr(user, "user_metadata", {}) or {}
+    return meta.get("full_name", "").strip()
 
 
 def logout() -> None:

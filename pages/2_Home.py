@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from components.styles import inject_styles
+from components.styles import inject_styles, metric_tile
 from components.nav import render_nav
-from utils.auth import is_authenticated, get_user_id
+from utils.auth import is_authenticated, get_user_id, get_display_name
 from utils.data_processor import process_linkedin_file, save_connections, get_connections
 
 st.set_page_config(
@@ -22,9 +22,38 @@ if not is_authenticated():
 
 render_nav(active="home")
 
-user_id = get_user_id()
+# ── Page-level CSS ─────────────────────────────────────────────────────────────
+st.markdown(
+    """
+    <style>
+    .stApp { background: #FFFFFF !important; }
+    .main, .block-container {
+        background: transparent !important;
+        padding-top: 1.2rem !important;
+    }
+    [data-testid="column"], [data-testid="stColumn"],
+    [data-testid="stHorizontalBlock"] > div { background: transparent !important; }
 
-# ── Load / cache connections ──────────────────────────────────────────────────
+    .upload-panel {
+      background: var(--cf-bg-soft);
+      border: 2px dashed var(--cf-border-strong);
+      border-radius: 14px; padding: 20px 24px; margin-bottom: 8px;
+    }
+    .chart-card {
+      background: #fff; border: 1px solid var(--cf-border);
+      border-radius: 16px; padding: 20px 22px; margin-bottom: 4px;
+    }
+    .chart-card h4 { margin: 0 0 2px; font-size: 15px; font-weight: 700; color: var(--cf-text); }
+    .chart-card .sub { font-size: 13px; color: var(--cf-text-muted); margin: 0; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+user_id = get_user_id()
+display_name = get_display_name()
+
+# ── Load / cache connections ───────────────────────────────────────────────────
 if (
     "connections_df" not in st.session_state
     or st.session_state.get("connections_user_id") != user_id
@@ -35,53 +64,63 @@ if (
 
 df: pd.DataFrame = st.session_state.connections_df
 
+# Pre-compute stats for the header
+total = len(df)
+n_companies = (
+    df["company"].replace("", pd.NA).dropna().nunique()
+    if "company" in df.columns else 0
+)
+
 # ── Page header ───────────────────────────────────────────────────────────────
-hdr_l, hdr_r = st.columns([5, 1])
+hdr_l, hdr_r = st.columns([4, 1])
 with hdr_l:
+    welcome = f"Welcome back, {display_name}." if display_name else "Welcome back."
+    summary = (
+        f'You have <strong style="color:var(--cf-text);">{total:,} connections</strong> across '
+        f'<strong style="color:var(--cf-text);">{n_companies:,} companies</strong>.'
+        if total else "Upload your LinkedIn connections to get started."
+    )
     st.markdown(
-        '<h1 style="margin:0;font-size:1.8rem;font-weight:800;color:#222222;">'
-        "Your Network Dashboard"
-        "</h1>",
+        f'<h1 style="margin:0 0 6px;font-size:1.8rem;font-weight:800;color:#222222;">'
+        f'Your Network Dashboard</h1>'
+        f'<p style="color:#717171;font-size:15px;margin:0;">{welcome} {summary}</p>',
         unsafe_allow_html=True,
     )
 with hdr_r:
+    st.write("")
     if st.button("📤 Upload CSV", key="upload_toggle", use_container_width=True, type="primary"):
         st.session_state.show_uploader = not st.session_state.get("show_uploader", False)
 
-# ── Upload panel ──────────────────────────────────────────────────────────────
+st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+
+# ── Upload panel ───────────────────────────────────────────────────────────────
 if st.session_state.get("show_uploader", False):
     st.markdown(
-        '<div style="background:#F7F7F7;border-radius:14px;padding:28px 32px;'
-        'margin:16px 0;border:1.5px dashed #DDDDDD;">',
+        '<div class="upload-panel">'
+        '<h4 style="margin:0 0 6px;font-size:15px;font-weight:700;">Upload LinkedIn Connections Export</h4>'
+        '<p style="color:#717171;font-size:.88rem;margin:0;">'
+        'Export path: <b>LinkedIn → Settings &amp; Privacy → Data Privacy → '
+        'Get a copy of your data → Connections</b>. '
+        'New connections are appended; duplicates are skipped automatically.'
+        '</p></div>',
         unsafe_allow_html=True,
     )
-    st.markdown("#### Upload LinkedIn Connections Export")
-    st.markdown(
-        '<p style="color:#717171;font-size:.88rem;margin-bottom:16px;">'
-        "Export path: <b>LinkedIn → Settings & Privacy → Data Privacy → "
-        "Get a copy of your data → Connections</b>. "
-        "New connections are appended; duplicates are skipped automatically."
-        "</p>",
-        unsafe_allow_html=True,
-    )
-
     uploaded = st.file_uploader(
-        "Choose your connections file (CSV or Excel)",
+        "Drop your file here",
         type=["csv", "xlsx", "xls"],
         key="file_uploader",
+        label_visibility="collapsed",
     )
+    st.caption("Supports CSV, XLSX, XLS · Up to 50 MB")
 
-    btn_col, cancel_col, _ = st.columns([1, 1, 5])
+    btn_col, cancel_col, _ = st.columns([1, 1, 4])
     with btn_col:
         process_clicked = st.button(
-            "Process & Save",
-            key="process_btn",
-            use_container_width=True,
-            type="primary",
-            disabled=not uploaded,
+            "Process & Save", key="process_btn",
+            use_container_width=True, type="primary", disabled=not uploaded,
         )
     with cancel_col:
-        if st.button("Cancel", key="cancel_upload", use_container_width=True):
+        if st.button("Cancel", key="cancel_upload", use_container_width=True, type="secondary"):
             st.session_state.show_uploader = False
             st.rerun()
 
@@ -116,11 +155,9 @@ if st.session_state.get("show_uploader", False):
                 st.session_state.show_uploader = False
                 st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Refresh reference after possible upload
+# Refresh after possible upload
 df = st.session_state.get("connections_df", pd.DataFrame())
 
 # ── Empty state ───────────────────────────────────────────────────────────────
@@ -130,18 +167,14 @@ if df.empty:
         '<div style="font-size:3.5rem;margin-bottom:16px;">📤</div>'
         '<h2 style="color:#222222;font-weight:800;margin-bottom:10px;">Upload your LinkedIn connections</h2>'
         '<p style="color:#717171;max-width:400px;margin:0 auto;">'
-        "Click the <b>Upload CSV</b> button above to get started. "
-        "Your connections will be embedded and stored securely."
-        "</p>"
-        "</div>",
+        'Click the <b>Upload CSV</b> button above to get started. '
+        'Your connections will be embedded and stored securely.'
+        '</p></div>',
         unsafe_allow_html=True,
     )
     st.stop()
 
-# ── Metrics row ───────────────────────────────────────────────────────────────
-st.markdown("#### Network Overview")
-m1, m2, m3, m4 = st.columns(4)
-
+# ── Metrics ────────────────────────────────────────────────────────────────────
 total = len(df)
 n_companies = (
     df["company"].replace("", pd.NA).dropna().nunique() if "company" in df.columns else 0
@@ -149,7 +182,6 @@ n_companies = (
 n_titles = (
     df["position"].replace("", pd.NA).dropna().nunique() if "position" in df.columns else 0
 )
-
 if "company" in df.columns:
     vc = df[df["company"].str.strip() != ""]["company"].value_counts()
     top_co = vc.index[0] if len(vc) else "—"
@@ -157,76 +189,78 @@ if "company" in df.columns:
 else:
     top_co, top_co_n = "—", 0
 
-with m1:
-    st.metric("Total Connections", f"{total:,}")
-with m2:
-    st.metric("Companies", f"{n_companies:,}")
-with m3:
-    st.metric("Unique Titles", f"{n_titles:,}")
-with m4:
-    st.metric("Top Company", top_co, f"{top_co_n} people")
+st.markdown('<h3 style="margin:8px 0 12px;font-size:15px;font-weight:700;color:#222222;">Network Overview</h3>',
+            unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
+m1, m2, m3, m4 = st.columns(4)
+with m1:
+    st.markdown(metric_tile("Total Connections", f"{total:,}"), unsafe_allow_html=True)
+with m2:
+    st.markdown(metric_tile("Companies", f"{n_companies:,}"), unsafe_allow_html=True)
+with m3:
+    st.markdown(metric_tile("Unique Titles", f"{n_titles:,}"), unsafe_allow_html=True)
+with m4:
+    st.markdown(metric_tile("Top Company", top_co, f"{top_co_n} people"), unsafe_allow_html=True)
+
+st.markdown('<div style="height:20px;"></div>', unsafe_allow_html=True)
 
 # ── Shared Plotly layout ───────────────────────────────────────────────────────
 _LAYOUT = dict(
     plot_bgcolor="white",
     paper_bgcolor="white",
     font=dict(family="Inter, sans-serif", color="#222222", size=12),
-    margin=dict(l=10, r=20, t=30, b=10),
-    height=380,
+    margin=dict(l=10, r=20, t=10, b=10),
+    height=320,
 )
 
-# ── Row 1: Companies | Job Titles ─────────────────────────────────────────────
+# ── Row 1: Companies | Job Titles ──────────────────────────────────────────────
 r1l, r1r = st.columns(2, gap="medium")
 
 with r1l:
-    st.markdown("##### Top Companies")
+    st.markdown(
+        '<div class="chart-card"><h4>Top Companies</h4>'
+        '<p class="sub">Where your connections work</p></div>',
+        unsafe_allow_html=True,
+    )
     if "company" in df.columns:
         co_df = (
             df[df["company"].str.strip() != ""]["company"]
-            .value_counts()
-            .head(15)
-            .reset_index()
+            .value_counts().head(15).reset_index()
         )
         co_df.columns = ["Company", "Connections"]
-        fig = px.bar(
-            co_df,
-            x="Connections",
-            y="Company",
-            orientation="h",
-            color_discrete_sequence=["#FF385C"],
-        )
+        fig = px.bar(co_df, x="Connections", y="Company", orientation="h",
+                     color_discrete_sequence=["#FF385C"])
         fig.update_layout(**_LAYOUT, yaxis=dict(autorange="reversed"))
         fig.update_traces(marker_line_width=0)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 with r1r:
-    st.markdown("##### Top Job Titles")
+    st.markdown(
+        '<div class="chart-card"><h4>Top Job Titles</h4>'
+        '<p class="sub">Most common roles in your network</p></div>',
+        unsafe_allow_html=True,
+    )
     if "position" in df.columns:
         pos_df = (
             df[df["position"].str.strip() != ""]["position"]
-            .value_counts()
-            .head(15)
-            .reset_index()
+            .value_counts().head(15).reset_index()
         )
         pos_df.columns = ["Title", "Connections"]
-        fig = px.bar(
-            pos_df,
-            x="Connections",
-            y="Title",
-            orientation="h",
-            color_discrete_sequence=["#00A699"],
-        )
+        fig = px.bar(pos_df, x="Connections", y="Title", orientation="h",
+                     color_discrete_sequence=["#00A699"])
         fig.update_layout(**_LAYOUT, yaxis=dict(autorange="reversed"))
         fig.update_traces(marker_line_width=0)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-# ── Row 2: Timeline | Company donut ───────────────────────────────────────────
+# ── Row 2: Timeline | Company donut ────────────────────────────────────────────
 r2l, r2r = st.columns(2, gap="medium")
 
 with r2l:
-    st.markdown("##### Connections Over Time")
+    st.markdown(
+        '<div class="chart-card"><h4>Connections Over Time</h4>'
+        '<p class="sub">Your network growth</p></div>',
+        unsafe_allow_html=True,
+    )
     if "connected_on" in df.columns:
         df_t = df[df["connected_on"].str.strip() != ""].copy()
         try:
@@ -235,61 +269,48 @@ with r2l:
             if not df_t.empty:
                 monthly = (
                     df_t.groupby(df_t["date"].dt.to_period("M").dt.to_timestamp())
-                    .size()
-                    .reset_index(name="count")
+                    .size().reset_index(name="count")
                 )
-                monthly.columns = ["date", "count"]
                 monthly["cumulative"] = monthly["count"].cumsum()
-
                 fig = go.Figure()
-                fig.add_trace(
-                    go.Scatter(
-                        x=monthly["date"],
-                        y=monthly["cumulative"],
-                        mode="lines",
-                        line=dict(color="#FF385C", width=2.5),
-                        fill="tozeroy",
-                        fillcolor="rgba(255,56,92,0.10)",
-                        hovertemplate="%{x|%b %Y}: %{y} total<extra></extra>",
-                    )
-                )
-                fig.update_layout(
-                    **_LAYOUT,
-                    showlegend=False,
-                    yaxis=dict(gridcolor="#F0F0F0"),
-                    xaxis=dict(gridcolor="#F0F0F0"),
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                fig.add_trace(go.Scatter(
+                    x=monthly["date"], y=monthly["cumulative"],
+                    mode="lines", line=dict(color="#FF385C", width=2.5),
+                    fill="tozeroy", fillcolor="rgba(255,56,92,0.10)",
+                    hovertemplate="%{x|%b %Y}: %{y} total<extra></extra>",
+                ))
+                fig.update_layout(**_LAYOUT, showlegend=False,
+                                  yaxis=dict(gridcolor="#F0F0F0"),
+                                  xaxis=dict(gridcolor="#F0F0F0"))
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             else:
-                st.info("No parseable dates found in your connections file.")
+                st.info("No parseable dates found.")
         except Exception:
-            st.info("Could not render the timeline — connection dates may be in an unrecognised format.")
+            st.info("Could not render the timeline.")
 
 with r2r:
-    st.markdown("##### Network by Company (Top 10)")
+    st.markdown(
+        f'<div class="chart-card"><h4>Network by Company (Top 10)</h4>'
+        f'<p class="sub">Distribution of your {total:,} connections</p></div>',
+        unsafe_allow_html=True,
+    )
     if "company" in df.columns:
         co_vc = df[df["company"].str.strip() != ""]["company"].value_counts()
         top10 = co_vc.head(10)
         other_n = int(co_vc.iloc[10:].sum()) if len(co_vc) > 10 else 0
-
         labels = list(top10.index) + (["Others"] if other_n else [])
         values = list(map(int, top10.values)) + ([other_n] if other_n else [])
-
-        fig = go.Figure(
-            go.Pie(
-                labels=labels,
-                values=values,
-                hole=0.42,
-                marker_colors=px.colors.qualitative.Pastel,
-                hovertemplate="%{label}: %{value} (%{percent})<extra></extra>",
-            )
-        )
+        fig = go.Figure(go.Pie(
+            labels=labels, values=values, hole=0.42,
+            marker_colors=px.colors.qualitative.Pastel,
+            hovertemplate="%{label}: %{value} (%{percent})<extra></extra>",
+        ))
         fig.update_layout(**_LAYOUT, legend=dict(orientation="v", x=1.01, y=0.5))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 # ── Full connections table ─────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
-with st.expander("📋  View all connections", expanded=False):
+with st.expander(f"📋  View all {total:,} connections", expanded=False):
     display = df.copy()
     display.columns = [c.replace("_", " ").title() for c in display.columns]
     st.dataframe(display, use_container_width=True, hide_index=True)
