@@ -1,6 +1,6 @@
 import streamlit as st
 from components.styles import inject_styles
-from utils.auth import login, logout, signup, is_authenticated
+from utils.auth import login, logout, signup, reset_password, is_authenticated
 
 st.set_page_config(
     page_title="Connect-IQ – Sign In",
@@ -18,6 +18,9 @@ if st.query_params.get("logout"):
 
 if is_authenticated():
     st.switch_page("pages/2_Home.py")
+
+# Derive forgot-password state from query param (survives reruns cleanly)
+show_forgot = st.query_params.get("forgot") == "1"
 
 # ── Page-level CSS ────────────────────────────────────────────────────────────
 st.markdown(
@@ -161,27 +164,61 @@ with form_col:
     # ── Sign In ───────────────────────────────────────────────────────────────
     with tab_login:
         st.markdown("<br>", unsafe_allow_html=True)
-        email = st.text_input("Email address", key="li_email", placeholder="you@example.com")
-        password = st.text_input(
-            "Password", type="password", key="li_password", placeholder="Your password"
-        )
-        st.markdown(
-            '<div style="text-align:right;margin-top:-8px;margin-bottom:18px;">'
-            '<span style="color:#222222;font-size:14px;font-weight:500;'
-            'cursor:pointer;text-decoration:underline;">Forgot password?</span>'
-            "</div>",
-            unsafe_allow_html=True,
-        )
-        if st.button("Sign In", key="login_btn", width='stretch', type="primary"):
-            if not email or not password:
-                st.error("Please fill in both fields.")
-            else:
-                with st.spinner("Signing in…"):
-                    ok, err = login(email, password)
-                if ok:
-                    st.switch_page("pages/2_Home.py")
+
+        if not show_forgot:
+            # ── Normal sign-in form ──────────────────────────────────────────
+            email = st.text_input("Email address", key="li_email", placeholder="you@example.com")
+            password = st.text_input(
+                "Password", type="password", key="li_password", placeholder="Your password"
+            )
+            st.markdown(
+                '<div style="text-align:right;margin-top:-8px;margin-bottom:18px;">'
+                '<a href="?forgot=1" target="_self" style="'
+                'color:#222222;font-size:14px;font-weight:500;'
+                'text-decoration:underline;cursor:pointer;'
+                'font-family:Inter,system-ui,sans-serif;">'
+                'Forgot password?</a></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Sign In", key="login_btn", width='stretch', type="primary"):
+                if not email or not password:
+                    st.error("Please fill in both fields.")
                 else:
-                    st.error(f"Sign-in failed: {err}")
+                    with st.spinner("Signing in…"):
+                        ok, err = login(email, password)
+                    if ok:
+                        st.switch_page("pages/2_Home.py")
+                    else:
+                        st.error(f"Sign-in failed: {err}")
+
+        else:
+            # ── Forgot password form ─────────────────────────────────────────
+            st.markdown(
+                '<p style="font-size:14px;color:#484848;margin:0 0 10px;font-weight:500;">'
+                'Enter your email to receive a password reset link:</p>',
+                unsafe_allow_html=True,
+            )
+            reset_email = st.text_input(
+                "", key="reset_email_input",
+                placeholder="you@example.com", label_visibility="collapsed",
+            )
+            st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
+            if st.button("Send reset link →", key="send_reset_btn", type="primary", width='stretch'):
+                if not reset_email:
+                    st.warning("Please enter your email address.")
+                else:
+                    with st.spinner("Sending reset link…"):
+                        ok, msg = reset_password(reset_email)
+                    if ok:
+                        st.success(msg)
+                        st.query_params.clear()
+                        st.rerun()
+                    else:
+                        st.error(msg)
+            st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+            if st.button("← Back to sign in", key="back_signin", width='stretch'):
+                st.query_params.clear()
+                st.rerun()
 
     # ── Create Account ────────────────────────────────────────────────────────
     with tab_signup:

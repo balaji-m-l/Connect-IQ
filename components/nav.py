@@ -39,11 +39,11 @@ def render_app_nav(active: str = "") -> None:
         <div style="display:flex;align-items:center;justify-content:space-between;
                     background:#fff;border-bottom:1px solid #EBEBEB;
                     padding:10px 0;margin-bottom:20px;">
-          <a href="/" style="font-size:18px;font-weight:800;color:#FF385C;
-             text-decoration:none;white-space:nowrap;
-             font-family:Inter,system-ui,sans-serif;line-height:1;">
+          <span style="font-size:18px;font-weight:800;color:#FF385C;
+             white-space:nowrap;
+             font-family:Inter,system-ui,sans-serif;line-height:1;cursor:default;">
             🔗 Connect-IQ
-          </a>
+          </span>
           <div style="display:flex;align-items:center;gap:4px;">
             <a href="/Home"         target="_self" style="{_s('dashboard')}">📊 Dashboard</a>
             <a href="/Chat"         target="_self" style="{_s('chat')}">💬 Chat</a>

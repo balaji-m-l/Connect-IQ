@@ -29,6 +29,15 @@ def signup(email: str, password: str, full_name: str = "") -> tuple[bool, str]:
         return False, str(e)
 
 
+def reset_password(email: str) -> tuple[bool, str]:
+    try:
+        client = get_supabase_client()
+        client.auth.reset_password_for_email(email)
+        return True, "Password reset link sent! Check your inbox."
+    except Exception as e:
+        return False, str(e)
+
+
 def get_display_name() -> str:
     user = st.session_state.get("user")
     if not user:
