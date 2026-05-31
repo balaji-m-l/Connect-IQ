@@ -3,6 +3,7 @@ styles.py — ConnectionsFun (Connect-IQ) design system for Streamlit
 """
 
 import streamlit as st
+from contextlib import contextmanager
 
 # ───────────────────────────────────────────────────────────────
 # DESIGN TOKENS
@@ -274,6 +275,7 @@ html, body, [class*="css"] {{
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 14px; font-weight: 500; color: var(--cf-text-muted);
   padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all .15s;
+  text-decoration: none;
 }}
 .cf-appnav-link:hover {{ background: var(--cf-bg-soft); color: var(--cf-text); }}
 .cf-appnav-link-active {{ background: var(--cf-red-tint); color: var(--cf-red); font-weight: 600; }}
@@ -323,6 +325,18 @@ html, body, [class*="css"] {{
 .cf-metric-label {{ font-size: 13px; font-weight: 500; color: var(--cf-text-muted); margin-bottom: 6px; }}
 .cf-metric-value {{ font-size: 28px; font-weight: 700; color: var(--cf-text); letter-spacing: -0.5px; }}
 .cf-metric-sub   {{ font-size: 12px; color: var(--cf-text-muted); margin-top: 2px; }}
+
+/* ── Chart card (st.container border=True) ── */
+[data-testid="stVerticalBlockBorderWrapper"] {{
+  background: #fff !important;
+  border: 1px solid var(--cf-border) !important;
+  border-radius: 16px !important;
+  padding: 20px 22px !important;
+  box-shadow: none !important;
+}}
+.chart-head {{ margin-bottom: 8px; }}
+.chart-head h4 {{ margin: 0 0 2px; font-size: 15px; font-weight: 700; color: var(--cf-text); }}
+.sub {{ font-size: 13px; color: var(--cf-text-muted); margin: 0; }}
 
 /* ── Misc ── */
 .cf-hr {{ border: none; border-top: 1px solid var(--cf-border); margin: 0; }}
@@ -404,6 +418,20 @@ def or_divider() -> str:
 
 def trust_strip(text: str = "🔒 Your data is encrypted and only accessible to you.") -> str:
     return f'<div class="cf-trust-strip"><span class="cf-small">{text}</span></div>'
+
+
+@contextmanager
+def chart_card(title: str, subtitle: str):
+    """Bordered chart card with header. Use as: `with chart_card(title, subtitle): ...`"""
+    with st.container(border=True):
+        st.markdown(
+            f'<div class="chart-head">'
+            f'<h4>{title}</h4>'
+            f'<p class="sub">{subtitle}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        yield
 
 
 def marketing_nav() -> str:

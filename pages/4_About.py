@@ -1,7 +1,7 @@
 import streamlit as st
 
 from components.styles import inject_styles, logo
-from components.nav import render_nav
+from components.nav import render_app_nav
 from utils.auth import is_authenticated
 
 st.set_page_config(
@@ -145,7 +145,7 @@ st.markdown(
 
 # ── Nav ────────────────────────────────────────────────────────────────────────
 if is_authenticated():
-    render_nav(active="about")
+    render_app_nav(active="about")
 else:
     logo_c, lf_c, feat_c, hiw_c, about_c, faq_c, rf_c, login_c, signup_c = st.columns(
         [2.2, 1.6, 1.2, 1.6, 1.0, 0.8, 1.6, 1.1, 1.4]
@@ -324,10 +324,9 @@ st.markdown(
 
 # ── Anchor scroll ──────────────────────────────────────────────────────────────
 if st.session_state.get("_about_scroll"):
-    import streamlit.components.v1 as components
     target = st.session_state.pop("_about_scroll")
-    components.html(
+    st.iframe(
         f'<script>window.parent.document.getElementById("{target}")'
         f'.scrollIntoView({{behavior:"smooth",block:"start"}});</script>',
-        height=0,
+        height=1,
     )

@@ -1,7 +1,7 @@
 import streamlit as st
 
 from components.styles import inject_styles
-from components.nav import render_nav
+from components.nav import render_app_nav
 from utils.auth import is_authenticated, get_user_id
 from utils.data_processor import get_connections
 from utils.llm import get_chat_response
@@ -18,7 +18,7 @@ inject_styles(hide_sidebar=True)
 if not is_authenticated():
     st.switch_page("pages/1_Login.py")
 
-render_nav(active="chat")
+render_app_nav(active="chat")
 
 user_id = get_user_id()
 
@@ -120,7 +120,7 @@ EXAMPLES = [
 ex_cols = st.columns(3)
 for i, example in enumerate(EXAMPLES):
     with ex_cols[i % 3]:
-        if st.button(example, key=f"ex_{i}", use_container_width=True):
+        if st.button(example, key=f"ex_{i}", width='stretch'):
             if "messages" not in st.session_state:
                 st.session_state.messages = []
             st.session_state.messages.append({"role": "user", "content": example})
@@ -169,6 +169,6 @@ if st.session_state.get("messages"):
     st.markdown("<br>", unsafe_allow_html=True)
     _, clear_col, _ = st.columns([5, 1, 5])
     with clear_col:
-        if st.button("🗑️ Clear chat", key="clear_chat", use_container_width=True):
+        if st.button("🗑️ Clear chat", key="clear_chat", width='stretch'):
             st.session_state.messages = []
             st.rerun()

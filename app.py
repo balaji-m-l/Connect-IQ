@@ -398,10 +398,9 @@ st.markdown(
 
 # ── Anchor scroll ─────────────────────────────────────────────────────────────
 if st.session_state.get("_scroll_to"):
-    import streamlit.components.v1 as components
     target = st.session_state.pop("_scroll_to")
-    components.html(
+    st.iframe(
         f'<script>window.parent.document.getElementById("{target}")'
         f'.scrollIntoView({{behavior:"smooth",block:"start"}});</script>',
-        height=0,
+        height=1,
     )

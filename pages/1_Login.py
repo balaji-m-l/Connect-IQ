@@ -1,6 +1,6 @@
 import streamlit as st
 from components.styles import inject_styles
-from utils.auth import login, signup, is_authenticated
+from utils.auth import login, logout, signup, is_authenticated
 
 st.set_page_config(
     page_title="Connect-IQ – Sign In",
@@ -10,6 +10,11 @@ st.set_page_config(
 )
 
 inject_styles(hide_sidebar=True)
+
+# Handle logout redirect: /Login?logout=1
+if st.query_params.get("logout"):
+    logout()
+    st.query_params.clear()
 
 if is_authenticated():
     st.switch_page("pages/2_Home.py")
@@ -167,7 +172,7 @@ with form_col:
             "</div>",
             unsafe_allow_html=True,
         )
-        if st.button("Sign In", key="login_btn", use_container_width=True, type="primary"):
+        if st.button("Sign In", key="login_btn", width='stretch', type="primary"):
             if not email or not password:
                 st.error("Please fill in both fields.")
             else:
@@ -196,7 +201,7 @@ with form_col:
             placeholder="Repeat your password",
         )
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Create Account", key="signup_btn", use_container_width=True, type="primary"):
+        if st.button("Create Account", key="signup_btn", width='stretch', type="primary"):
             if not full_name or not new_email or not new_pw or not confirm_pw:
                 st.error("Please fill in all fields.")
             elif new_pw != confirm_pw:

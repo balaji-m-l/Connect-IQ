@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 
-from components.styles import inject_styles, metric_tile
-from components.nav import render_nav
+from charts import hbar_chart, area_chart, donut_chart
+from components.styles import inject_styles, metric_tile, chart_card
+from components.nav import render_app_nav
 from utils.auth import is_authenticated, get_user_id, get_display_name
 from utils.data_processor import process_linkedin_file, save_connections, get_connections
 
@@ -20,7 +19,7 @@ inject_styles(hide_sidebar=True)
 if not is_authenticated():
     st.switch_page("pages/1_Login.py")
 
-render_nav(active="home")
+render_app_nav(active="dashboard")
 
 # ── Page-level CSS ─────────────────────────────────────────────────────────────
 st.markdown(
@@ -39,12 +38,6 @@ st.markdown(
       border: 2px dashed var(--cf-border-strong);
       border-radius: 14px; padding: 20px 24px; margin-bottom: 8px;
     }
-    .chart-card {
-      background: #fff; border: 1px solid var(--cf-border);
-      border-radius: 16px; padding: 20px 22px; margin-bottom: 4px;
-    }
-    .chart-card h4 { margin: 0 0 2px; font-size: 15px; font-weight: 700; color: var(--cf-text); }
-    .chart-card .sub { font-size: 13px; color: var(--cf-text-muted); margin: 0; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -88,7 +81,7 @@ with hdr_l:
     )
 with hdr_r:
     st.write("")
-    if st.button("📤 Upload CSV", key="upload_toggle", use_container_width=True, type="primary"):
+    if st.button("📤 Upload CSV", key="upload_toggle", width='stretch', type="primary"):
         st.session_state.show_uploader = not st.session_state.get("show_uploader", False)
 
 st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
@@ -117,10 +110,10 @@ if st.session_state.get("show_uploader", False):
     with btn_col:
         process_clicked = st.button(
             "Process & Save", key="process_btn",
-            use_container_width=True, type="primary", disabled=not uploaded,
+            width='stretch', type="primary", disabled=not uploaded,
         )
     with cancel_col:
-        if st.button("Cancel", key="cancel_upload", use_container_width=True, type="secondary"):
+        if st.button("Cancel", key="cancel_upload", width='stretch', type="secondary"):
             st.session_state.show_uploader = False
             st.rerun()
 
@@ -204,113 +197,76 @@ with m4:
 
 st.markdown('<div style="height:20px;"></div>', unsafe_allow_html=True)
 
-# ── Shared Plotly layout ───────────────────────────────────────────────────────
-_LAYOUT = dict(
-    plot_bgcolor="white",
-    paper_bgcolor="white",
-    font=dict(family="Inter, sans-serif", color="#222222", size=12),
-    margin=dict(l=10, r=20, t=10, b=10),
-    height=320,
-)
-
 # ── Row 1: Companies | Job Titles ──────────────────────────────────────────────
 r1l, r1r = st.columns(2, gap="medium")
 
 with r1l:
-    st.markdown(
-        '<div class="chart-card"><h4>Top Companies</h4>'
-        '<p class="sub">Where your connections work</p></div>',
-        unsafe_allow_html=True,
-    )
-    if "company" in df.columns:
-        co_df = (
-            df[df["company"].str.strip() != ""]["company"]
-            .value_counts().head(15).reset_index()
-        )
-        co_df.columns = ["Company", "Connections"]
-        fig = px.bar(co_df, x="Connections", y="Company", orientation="h",
-                     color_discrete_sequence=["#FF385C"])
-        fig.update_layout(**_LAYOUT, yaxis=dict(autorange="reversed"))
-        fig.update_traces(marker_line_width=0)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    with chart_card("Top Companies", "Where your connections work"):
+        if "company" in df.columns:
+            co_df = (
+                df[df["company"].str.strip() != ""]["company"]
+                .value_counts().head(15).reset_index()
+            )
+            co_df.columns = ["Company", "Connections"]
+            st.plotly_chart(
+                hbar_chart(co_df, "Company", "Connections", "#FF385C"),
+                width="stretch", config={"displayModeBar": False},
+            )
 
 with r1r:
-    st.markdown(
-        '<div class="chart-card"><h4>Top Job Titles</h4>'
-        '<p class="sub">Most common roles in your network</p></div>',
-        unsafe_allow_html=True,
-    )
-    if "position" in df.columns:
-        pos_df = (
-            df[df["position"].str.strip() != ""]["position"]
-            .value_counts().head(15).reset_index()
-        )
-        pos_df.columns = ["Title", "Connections"]
-        fig = px.bar(pos_df, x="Connections", y="Title", orientation="h",
-                     color_discrete_sequence=["#00A699"])
-        fig.update_layout(**_LAYOUT, yaxis=dict(autorange="reversed"))
-        fig.update_traces(marker_line_width=0)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    with chart_card("Top Job Titles", "Most common roles in your network"):
+        if "position" in df.columns:
+            pos_df = (
+                df[df["position"].str.strip() != ""]["position"]
+                .value_counts().head(15).reset_index()
+            )
+            pos_df.columns = ["Title", "Connections"]
+            st.plotly_chart(
+                hbar_chart(pos_df, "Title", "Connections", "#00A699"),
+                width="stretch", config={"displayModeBar": False},
+            )
 
 # ── Row 2: Timeline | Company donut ────────────────────────────────────────────
 r2l, r2r = st.columns(2, gap="medium")
 
 with r2l:
-    st.markdown(
-        '<div class="chart-card"><h4>Connections Over Time</h4>'
-        '<p class="sub">Your network growth</p></div>',
-        unsafe_allow_html=True,
-    )
-    if "connected_on" in df.columns:
-        df_t = df[df["connected_on"].str.strip() != ""].copy()
-        try:
-            df_t["date"] = pd.to_datetime(df_t["connected_on"], errors="coerce", dayfirst=True)
-            df_t = df_t.dropna(subset=["date"])
-            if not df_t.empty:
-                monthly = (
-                    df_t.groupby(df_t["date"].dt.to_period("M").dt.to_timestamp())
-                    .size().reset_index(name="count")
-                )
-                monthly["cumulative"] = monthly["count"].cumsum()
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=monthly["date"], y=monthly["cumulative"],
-                    mode="lines", line=dict(color="#FF385C", width=2.5),
-                    fill="tozeroy", fillcolor="rgba(255,56,92,0.10)",
-                    hovertemplate="%{x|%b %Y}: %{y} total<extra></extra>",
-                ))
-                fig.update_layout(**_LAYOUT, showlegend=False,
-                                  yaxis=dict(gridcolor="#F0F0F0"),
-                                  xaxis=dict(gridcolor="#F0F0F0"))
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-            else:
-                st.info("No parseable dates found.")
-        except Exception:
-            st.info("Could not render the timeline.")
+    with chart_card("Connections Over Time", "Your network growth"):
+        if "connected_on" in df.columns:
+            df_t = df[df["connected_on"].str.strip() != ""].copy()
+            try:
+                df_t["date"] = pd.to_datetime(df_t["connected_on"], errors="coerce", dayfirst=True)
+                df_t = df_t.dropna(subset=["date"])
+                if not df_t.empty:
+                    monthly = (
+                        df_t.groupby(df_t["date"].dt.to_period("M").dt.to_timestamp())
+                        .size().reset_index(name="count")
+                    )
+                    monthly["cumulative"] = monthly["count"].cumsum()
+                    st.plotly_chart(
+                        area_chart(monthly),
+                        width="stretch", config={"displayModeBar": False},
+                    )
+                else:
+                    st.info("No parseable dates found.")
+            except Exception:
+                st.info("Could not render the timeline.")
 
 with r2r:
-    st.markdown(
-        f'<div class="chart-card"><h4>Network by Company (Top 10)</h4>'
-        f'<p class="sub">Distribution of your {total:,} connections</p></div>',
-        unsafe_allow_html=True,
-    )
-    if "company" in df.columns:
-        co_vc = df[df["company"].str.strip() != ""]["company"].value_counts()
-        top10 = co_vc.head(10)
-        other_n = int(co_vc.iloc[10:].sum()) if len(co_vc) > 10 else 0
-        labels = list(top10.index) + (["Others"] if other_n else [])
-        values = list(map(int, top10.values)) + ([other_n] if other_n else [])
-        fig = go.Figure(go.Pie(
-            labels=labels, values=values, hole=0.42,
-            marker_colors=px.colors.qualitative.Pastel,
-            hovertemplate="%{label}: %{value} (%{percent})<extra></extra>",
-        ))
-        fig.update_layout(**_LAYOUT, legend=dict(orientation="v", x=1.01, y=0.5))
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    with chart_card("Network by Company (Top 10)", f"Distribution of your {total:,} connections"):
+        if "company" in df.columns:
+            co_vc = df[df["company"].str.strip() != ""]["company"].value_counts()
+            top10 = co_vc.head(10)
+            other_n = int(co_vc.iloc[10:].sum()) if len(co_vc) > 10 else 0
+            labels = list(top10.index) + (["Others"] if other_n else [])
+            values = list(map(int, top10.values)) + ([other_n] if other_n else [])
+            st.plotly_chart(
+                donut_chart(labels, values, total),
+                width="stretch", config={"displayModeBar": False},
+            )
 
 # ── Full connections table ─────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
 with st.expander(f"📋  View all {total:,} connections", expanded=False):
     display = df.copy()
     display.columns = [c.replace("_", " ").title() for c in display.columns]
-    st.dataframe(display, use_container_width=True, hide_index=True)
+    st.dataframe(display, width='stretch', hide_index=True)

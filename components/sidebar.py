@@ -18,10 +18,10 @@ def render_sidebar(active: str = "home") -> None:
             unsafe_allow_html=True,
         )
 
-        if st.button("📊  Dashboard", use_container_width=True, key="sb_home"):
+        if st.button("📊  Dashboard", width='stretch', key="sb_home"):
             st.switch_page("pages/2_Home.py")
 
-        if st.button("💬  Chat with AI", use_container_width=True, key="sb_chat"):
+        if st.button("💬  Chat with AI", width='stretch', key="sb_chat"):
             st.switch_page("pages/3_Chat.py")
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -31,6 +31,6 @@ def render_sidebar(active: str = "home") -> None:
             unsafe_allow_html=True,
         )
 
-        if st.button("🚪  Log Out", use_container_width=True, key="sb_logout"):
+        if st.button("🚪  Log Out", width='stretch', key="sb_logout"):
             logout()
             st.switch_page("app.py")
