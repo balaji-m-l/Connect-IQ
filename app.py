@@ -131,6 +131,7 @@ with login_c:
 
 with signup_c:
     if st.button("Sign up free", key="nav_signup", type="primary"):
+        st.query_params["signup"] = "1"
         st.switch_page("pages/1_Login.py")
 
 # ── Dark hero card (self-contained HTML) ──────────────────────────────────────
@@ -172,7 +173,7 @@ st.markdown(
         </p>
         <!-- CTA buttons -->
         <div style="display:flex;justify-content:center;gap:12px;margin-bottom:18px;">
-            <a href="/1_Login" target="_self"
+            <a href="/Login?signup=1" target="_self"
                style="display:inline-flex;align-items:center;justify-content:center;
                       background:#FF385C;color:#FFFFFF;font-weight:700;font-size:15px;
                       border-radius:8px;padding:12px 28px;text-decoration:none;
@@ -180,12 +181,6 @@ st.markdown(
                       transition:background .18s ease;">
                 Get started free &rarr;
             </a>
-            <div style="display:inline-flex;align-items:center;justify-content:center;gap:7px;
-                        background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.22);
-                        border-radius:8px;padding:12px 24px;color:#FFFFFF;font-weight:600;
-                        font-size:15px;font-family:Inter,sans-serif;white-space:nowrap;">
-                &#9658;&nbsp;Watch 60-sec demo
-            </div>
         </div>
         <!-- Caption -->
         <p style="color:rgba(255,255,255,.30);font-size:.82rem;margin:0;
@@ -374,7 +369,7 @@ st.markdown(
                    font-family:Inter,sans-serif;">Ready to explore your network?</h2>
         <p style="color:rgba(255,255,255,.82);font-size:1rem;margin:0 0 28px;
                   font-family:Inter,sans-serif;">Free to get started. No credit card required.</p>
-        <a href="/1_Login" target="_self"
+        <a href="/Login?signup=1" target="_self"
            style="display:inline-flex;align-items:center;justify-content:center;
                   background:#FFFFFF;color:#222222;font-weight:700;font-size:15px;
                   border-radius:8px;padding:13px 32px;text-decoration:none;

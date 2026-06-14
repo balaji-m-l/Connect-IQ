@@ -19,8 +19,9 @@ if st.query_params.get("logout"):
 if is_authenticated():
     st.switch_page("pages/2_Home.py")
 
-# Derive forgot-password state from query param (survives reruns cleanly)
-show_forgot = st.query_params.get("forgot") == "1"
+# Derive state from query params (survive reruns cleanly)
+show_forgot  = st.query_params.get("forgot")  == "1"
+show_signup  = st.query_params.get("signup")  == "1"
 
 # ── Page-level CSS ────────────────────────────────────────────────────────────
 st.markdown(
@@ -159,7 +160,10 @@ st.markdown(
 _, form_col, _ = st.columns([1.3, 2, 1.3])
 
 with form_col:
-    tab_login, tab_signup = st.tabs(["Sign In", "Create Account"])
+    if show_signup:
+        tab_signup, tab_login = st.tabs(["Create Account", "Sign In"])
+    else:
+        tab_login, tab_signup = st.tabs(["Sign In", "Create Account"])
 
     # ── Sign In ───────────────────────────────────────────────────────────────
     with tab_login:

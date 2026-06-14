@@ -37,6 +37,7 @@ _NAV_CSS = """<style>
 .cf-nav-avatar-wrap:hover .cf-nav-avatar{box-shadow:0 0 0 2.5px #FF385C}
 .cf-av-dd{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid #EBEBEB;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.10);min-width:220px;z-index:9999;overflow:hidden}
 .cf-nav-avatar-wrap:hover .cf-av-dd{display:block}
+.cf-nav-avatar-wrap::after{content:'';position:absolute;top:100%;left:-10px;right:-10px;height:8px}
 .cf-av-dd-hdr{padding:14px 16px 12px;border-bottom:1px solid #EBEBEB}
 .cf-av-dd-name{font-size:13.5px;font-weight:600;color:#222}
 .cf-av-dd-email{font-size:12px;color:#717171;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:188px}
