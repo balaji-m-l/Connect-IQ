@@ -40,7 +40,7 @@ st.markdown(
       line-height: 1.65; max-width: 580px; margin: 0 auto;
     }
 
-    /* Stats card — overlaps hero */
+    /* Capabilities card — overlaps hero */
     .stats-wrap { margin-top: -36px; margin-bottom: 48px; }
     .stats-card {
       background: #fff; border: 1px solid var(--cf-border);
@@ -50,10 +50,13 @@ st.markdown(
     }
     .stat-cell { text-align: center; }
     .stat-value {
-      font-size: 32px; font-weight: 800;
-      color: var(--cf-red); letter-spacing: -0.5px;
+      font-size: 2rem; margin-bottom: 12px;
     }
-    .stat-label { font-size: 13px; color: var(--cf-text-muted); margin-top: 4px; }
+    .stat-label {
+      font-size: 1.05rem; font-weight: 700; color: var(--cf-red);
+      letter-spacing: -.2px; margin-bottom: 6px;
+    }
+    .stat-desc { font-size: .83rem; color: var(--cf-text-muted); line-height: 1.5; margin-top: 4px; }
 
     /* Tech stack */
     .tech-wrap { padding: 12px 0 56px; }
@@ -65,29 +68,40 @@ st.markdown(
       transition: box-shadow .18s, transform .18s;
     }
     .tech-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-    .tech-icon { font-size: 26px; margin-bottom: 8px; }
-    .tech-name { font-size: 15px; font-weight: 700; color: var(--cf-text); }
-    .tech-role { font-size: 13px; color: var(--cf-text-muted); margin-top: 2px; }
+    .tech-icon { font-size: 2rem; margin-bottom: 12px; }
+    .tech-name { font-size: 1.05rem; font-weight: 700; color: var(--cf-text); }
+    .tech-role { font-size: .83rem; color: var(--cf-text-muted); margin-top: 4px; }
 
     /* FAQ section */
     .faq-head { text-align: center; padding: 48px 0 32px; background: var(--cf-bg-soft);
                 border-radius: 20px 20px 0 0; }
-    [data-testid="stExpander"] {
-      background: #fff !important;
-      border: 1px solid var(--cf-border) !important;
-      border-radius: 16px !important;
-      margin-bottom: 10px !important;
-      box-shadow: none !important;
+
+    /* Custom accordion */
+    .cf-faq-wrap { max-width: 760px; margin: 0 auto; }
+    .cf-faq-item {
+      background: #fff; border: 1px solid var(--cf-border);
+      border-radius: 14px; margin-bottom: 8px; overflow: hidden;
     }
-    [data-testid="stExpander"] summary {
-      padding: 20px 24px !important;
-      font-size: 16px !important; font-weight: 600 !important;
-      color: var(--cf-text) !important;
+    .cf-faq-q {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; cursor: pointer;
+      font-size: 15.5px; font-weight: 600; color: var(--cf-text);
     }
-    [data-testid="stExpander"] [data-testid="stExpanderDetails"] {
-      padding: 4px 24px 20px !important;
-      font-size: 14.5px !important; color: var(--cf-text-muted) !important;
-      line-height: 1.65 !important;
+    .cf-faq-icon {
+      flex-shrink: 0; width: 22px; height: 22px; font-size: 20px;
+      line-height: 1; color: #717171; transition: transform .2s;
+    }
+    .cf-faq-icon.open { transform: rotate(45deg); color: #FF385C; }
+    .cf-faq-a {
+      padding: 0 24px 18px; font-size: 14.5px;
+      color: var(--cf-text-muted); line-height: 1.65;
+    }
+    /* Streamlit button reset inside FAQ rows */
+    .cf-faq-btn button {
+      background: transparent !important; border: none !important;
+      box-shadow: none !important; padding: 0 !important;
+      width: 100% !important; text-align: left !important;
+      min-height: 0 !important;
     }
 
     /* Footer */
@@ -181,10 +195,10 @@ else:
 
 # ── Content data ───────────────────────────────────────────────────────────────
 STATS = [
-    ("2,000+", "Active users"),
-    ("1.2M",   "Connections analyzed"),
-    ("99.9%",  "Uptime"),
-    ("<2s",    "Average query time"),
+    ("🔎", "Plain-English search",    "Ask questions the way you'd talk — no filters or queries to learn"),
+    ("🎯", "Grounded answers",         "Every reply is drawn from your real connections, no made-up results"),
+    ("📊", "Instant visualizations",   "See your network by company, role, and growth over time at a glance"),
+    ("🔒", "Private by design",        "Your data stays in your own database and never trains any model"),
 ]
 
 TECH = [
@@ -233,10 +247,11 @@ st.markdown('<div id="cf-about-top"></div>', unsafe_allow_html=True)
 
 stat_cells = "".join(
     f'<div class="stat-cell">'
-    f'<div class="stat-value">{v}</div>'
-    f'<div class="stat-label">{l}</div>'
+    f'<div class="stat-value">{icon}</div>'
+    f'<div class="stat-label">{title}</div>'
+    f'<div class="stat-desc">{desc}</div>'
     f'</div>'
-    for v, l in STATS
+    for icon, title, desc in STATS
 )
 st.markdown(
     f"""
@@ -299,11 +314,54 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+if "faq_open_idx" not in st.session_state:
+    st.session_state["faq_open_idx"] = 0
+
+# Inject per-item active styles
+faq_btn_css = "<style>"
+for _i in range(len(FAQS)):
+    _open = st.session_state["faq_open_idx"] == _i
+    faq_btn_css += f"""
+    [data-testid="faq_toggle_{_i}"] button {{
+        background: transparent !important; border: none !important;
+        box-shadow: none !important; width: 100% !important;
+        padding: 20px 24px !important; text-align: left !important;
+        min-height: 0 !important; border-radius: 0 !important;
+        font-size: 15.5px !important; font-weight: 600 !important;
+        color: {"#FF385C" if _open else "var(--cf-text)"} !important;
+        justify-content: space-between !important; display: flex !important;
+    }}
+    [data-testid="faq_toggle_{_i}"] button:hover {{
+        color: #FF385C !important; background: #FFF8F9 !important;
+        transform: none !important;
+    }}
+    """
+faq_btn_css += "</style>"
+st.markdown(faq_btn_css, unsafe_allow_html=True)
+
 _, faq_col, _ = st.columns([1, 3, 1])
 with faq_col:
     for i, (question, answer) in enumerate(FAQS):
-        with st.expander(question, expanded=(i == 0)):
-            st.markdown(answer)
+        is_open = st.session_state["faq_open_idx"] == i
+        icon = "×" if is_open else "+"
+
+        # Card wrapper open
+        st.markdown(
+            f'<div class="cf-faq-item" style="border-color:{"#FF385C" if is_open else "var(--cf-border)"};">',
+            unsafe_allow_html=True,
+        )
+        # Clickable row button
+        if st.button(f"{question}  {icon}", key=f"faq_toggle_{i}"):
+            st.session_state["faq_open_idx"] = i if not is_open else -1
+            st.rerun()
+        # Answer (visible when open)
+        if is_open:
+            st.markdown(
+                f'<div class="cf-faq-a">{answer}</div>',
+                unsafe_allow_html=True,
+            )
+        # Card wrapper close
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown(

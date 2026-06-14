@@ -28,7 +28,10 @@ st.markdown(
     .stApp { background: #FFFFFF !important; }
     .main, .block-container {
         background: transparent !important;
-        padding-top: 1.2rem !important;
+        padding-top: 32px !important;
+        padding-left: 40px !important;
+        padding-right: 40px !important;
+        padding-bottom: 40px !important;
     }
     [data-testid="column"], [data-testid="stColumn"],
     [data-testid="stHorizontalBlock"] > div { background: transparent !important; }

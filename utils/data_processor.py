@@ -18,9 +18,10 @@ LINKEDIN_COLUMN_MAP = {
     "company":       "company",
     "position":      "position",
     "connected on":  "connected_on",
+    "url":           "profile_url",
 }
 
-CORE_COLS = ["first_name", "last_name", "email", "company", "position", "connected_on"]
+CORE_COLS = ["first_name", "last_name", "email", "company", "position", "connected_on", "profile_url"]
 
 
 # ---------------------------------------------------------------------------
@@ -155,19 +156,22 @@ def _generate_embeddings(
 # Supabase CRUD
 # ---------------------------------------------------------------------------
 
-def _get_existing_keys(user_id: str) -> set[tuple[str, str, str]]:
-    """Return (first_name, last_name, company) tuples already in the DB."""
+def _get_existing_rows(user_id: str) -> dict[tuple[str, str, str], str]:
+    """Return a mapping of (first_name, last_name, company) → profile_url for existing rows."""
     try:
         client = get_supabase_client()
         resp = (
             client.table("connections")
-            .select("first_name,last_name,company")
+            .select("first_name,last_name,company,profile_url")
             .eq("user_id", user_id)
             .execute()
         )
-        return {(r["first_name"], r["last_name"], r["company"]) for r in resp.data}
+        return {
+            (r["first_name"], r["last_name"], r["company"]): r.get("profile_url", "")
+            for r in resp.data
+        }
     except Exception:
-        return set()
+        return {}
 
 
 def save_connections(
@@ -184,16 +188,37 @@ def save_connections(
         if progress_cb:
             progress_cb(0.05, "Checking for duplicates…")
 
-        existing = _get_existing_keys(user_id)
-        new_rows = [
-            row
-            for row in df.to_dict("records")
-            if (row.get("first_name", ""), row.get("last_name", ""), row.get("company", ""))
-            not in existing
-        ]
-        duplicates = len(df) - len(new_rows)
+        existing = _get_existing_rows(user_id)
+        all_rows = df.to_dict("records")
+
+        new_rows = []
+        url_updates = []  # existing rows whose profile_url is now available
+
+        for row in all_rows:
+            key = (row.get("first_name", ""), row.get("last_name", ""), row.get("company", ""))
+            new_url = str(row.get("profile_url", "")).strip()
+            if key not in existing:
+                new_rows.append(row)
+            elif new_url and not existing[key]:
+                # Row exists but profile_url was empty — backfill it
+                url_updates.append({"key": key, "profile_url": new_url})
+
+        duplicates = len(all_rows) - len(new_rows)
+
+        # Backfill profile_url for existing rows that now have a URL
+        if url_updates:
+            client = get_supabase_client()
+            if progress_cb:
+                progress_cb(0.08, f"Updating profile URLs for {len(url_updates)} existing connections…")
+            for item in url_updates:
+                fn, ln, co = item["key"]
+                client.table("connections").update(
+                    {"profile_url": item["profile_url"]}
+                ).eq("user_id", user_id).eq("first_name", fn).eq("last_name", ln).eq("company", co).execute()
 
         if not new_rows:
+            if progress_cb:
+                progress_cb(1.0, "Done!")
             return 0, duplicates, None
 
         if progress_cb:
@@ -239,7 +264,7 @@ def get_connections(user_id: str) -> pd.DataFrame:
         while True:
             resp = (
                 client.table("connections")
-                .select("first_name,last_name,email,company,position,connected_on")
+                .select("first_name,last_name,email,company,position,connected_on,profile_url")
                 .eq("user_id", user_id)
                 .range(offset, offset + page_size - 1)
                 .execute()
@@ -257,3 +282,53 @@ def get_connections(user_id: str) -> pd.DataFrame:
         import streamlit as st
         st.error(f"Error loading connections: {e}")
         return pd.DataFrame()
+
+
+def get_connection_stats(user_id: str) -> dict:
+    """Return {total, last_import} for the Settings / Your data panel."""
+    try:
+        client = get_supabase_client()
+        resp = (
+            client.table("connections")
+            .select("id,created_at")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        rows = resp.data or []
+        total = len(rows)
+        last_import = "—"
+        if rows:
+            dates = [r["created_at"] for r in rows if r.get("created_at")]
+            if dates:
+                last_import = max(dates)[:10]
+        return {"total": total, "last_import": last_import}
+    except Exception:
+        return {"total": 0, "last_import": "—"}
+
+
+def clear_connections(user_id: str) -> tuple[bool, str | None]:
+    """Delete all connections (and their embeddings) for a user."""
+    try:
+        client = get_supabase_client()
+        client.table("connections").delete().eq("user_id", user_id).execute()
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
+def export_connections_csv(user_id: str) -> str:
+    """Return a CSV string of all connections for download."""
+    try:
+        client = get_supabase_client()
+        resp = (
+            client.table("connections")
+            .select("first_name,last_name,email,company,position,connected_on")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        rows = resp.data or []
+        if not rows:
+            return ""
+        return pd.DataFrame(rows).to_csv(index=False)
+    except Exception:
+        return ""

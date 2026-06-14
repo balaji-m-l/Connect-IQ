@@ -6,6 +6,7 @@ from components.nav import render_app_nav
 from utils.auth import is_authenticated, get_user_id
 from utils.data_processor import get_connections
 from utils.llm import get_chat_response
+from utils.chat_store import _MSG_STORE, clear_user as _clear_user_msgs
 
 st.set_page_config(
     page_title="Connect-IQ – Chat",
@@ -101,12 +102,12 @@ st.markdown(
       border-radius: 8px !important;
       color: #484848 !important;
       font-weight: 500 !important;
-      font-size: 13.5px !important;
-      padding: 10px 14px !important;
-      line-height: 1.35 !important;
-      text-align: left !important;
+      font-size: 12px !important;
+      padding: 5px 10px !important;
+      line-height: 1.3 !important;
+      text-align: center !important;
       white-space: normal !important;
-      min-height: 46px !important;
+      min-height: 0 !important;
       box-shadow: none !important;
       transition: all .15s !important;
     }
@@ -187,6 +188,13 @@ st.markdown('<hr style="margin:16px 0 12px;">', unsafe_allow_html=True)
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def _md_to_html(text: str) -> str:
     """Convert common LLM markdown patterns to HTML for use inside chat bubbles."""
+    # Markdown links must be converted before bold/italic to avoid conflicts
+    text = re.sub(
+        r"\[([^\]]+)\]\((https?://[^\)]+)\)",
+        r'<a href="\2" target="_blank" rel="noopener noreferrer" '
+        r'style="color:#0077B5;font-weight:600;text-decoration:none;">\1</a>',
+        text,
+    )
     text = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"\*([^*]+)\*",     r"<em>\1</em>",         text)
     text = text.replace("\n", "<br>")
@@ -194,8 +202,13 @@ def _md_to_html(text: str) -> str:
 
 
 # ── Chat history ───────────────────────────────────────────────────────────────
+# On a fresh session (new page load / page navigation), restore from the
+# module-level store.  On subsequent reruns within the same session, the
+# assignment below keeps the store reference in sync so that appends made
+# later in this script are automatically visible to future fresh sessions.
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = list(_MSG_STORE.get(user_id, []))
+_MSG_STORE[user_id] = st.session_state.messages
 
 for msg in st.session_state.messages:
     if msg["role"] == "user":
@@ -231,9 +244,63 @@ if prompt := st.chat_input("Ask about your connections…"):
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown(
-    '<div style="margin-top:16px;padding-top:12px;border-top:1px solid #EBEBEB;">'
-    '<span style="font-size:13px;color:#717171;">'
-    "Powered by Gemini 2.5 Flash · Grounded in your data"
-    "</span></div>",
+    """
+    <style>
+    .chat-footer-row {
+        display:flex; align-items:center; justify-content:space-between;
+        margin-top:16px; padding-top:12px; border-top:1px solid #EBEBEB;
+    }
+    /* Clear chat = inline text link, not a full button */
+    .chat-footer-row + div [data-testid="clear_chat_btn"] button,
+    [data-testid="clear_chat_btn"] button {
+        background: transparent !important;
+        color: #717171 !important;
+        border: none !important;
+        font-size: 13px !important;
+        font-weight: 400 !important;
+        padding: 2px 0 !important;
+        width: auto !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        min-height: 0 !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+    }
+    [data-testid="clear_chat_btn"] button:hover {
+        background: transparent !important;
+        color: #D92D20 !important;
+        transform: none !important;
+        text-decoration: underline !important;
+    }
+    </style>
+    """,
     unsafe_allow_html=True,
 )
+
+st.markdown(
+    '<div class="chat-footer-row">'
+    '<span style="font-size:13px;color:#717171;">'
+    "Powered by Gemini 2.5 Flash · Grounded in your data"
+    "</span>",
+    unsafe_allow_html=True,
+)
+if st.button("🗑 Clear chat", key="clear_chat_btn"):
+    st.session_state["confirm_clear_chat"] = True
+st.markdown("</div>", unsafe_allow_html=True)
+
+if st.session_state.get("confirm_clear_chat"):
+    st.warning(
+        "Clear all messages in this conversation? This cannot be undone.",
+        icon="⚠️",
+    )
+    ok_col, cancel_col, _ = st.columns([1, 1, 5])
+    with ok_col:
+        if st.button("Yes, clear", key="confirm_clear_yes", type="primary"):
+            st.session_state.messages = []
+            _clear_user_msgs(user_id)
+            st.session_state.pop("confirm_clear_chat", None)
+            st.rerun()
+    with cancel_col:
+        if st.button("Cancel", key="confirm_clear_no", type="secondary"):
+            st.session_state.pop("confirm_clear_chat", None)
+            st.rerun()

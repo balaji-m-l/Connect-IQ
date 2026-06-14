@@ -365,7 +365,10 @@ html, body, [class*="css"] {{
 """
 
 _HIDE_SIDEBAR = """<style>
-#MainMenu, footer {{ visibility: hidden; }}
+#MainMenu, footer, header {{ visibility: hidden; }}
+[data-testid="stHeader"],
+[data-testid="stDecoration"],
+#stDecoration {{ display: none !important; }}
 [data-testid="collapsedControl"] {{ display: none; }}
 section[data-testid="stSidebar"] {{ display: none !important; }}
 </style>"""
