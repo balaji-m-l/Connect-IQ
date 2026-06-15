@@ -1,0 +1,12 @@
+venv/
+venv311/
+.env
+.git/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.vscode/
+*.md
