@@ -95,8 +95,8 @@ if st.session_state.get("show_uploader", False):
         '<div class="upload-panel">'
         '<h4 style="margin:0 0 6px;font-size:15px;font-weight:700;">Upload LinkedIn Connections Export</h4>'
         '<p style="color:#717171;font-size:.88rem;margin:0;">'
-        'Export path: <b>LinkedIn → Settings &amp; Privacy → Data Privacy → '
-        'Get a copy of your data → Connections</b>. '
+        'Export path: <b>LinkedIn → Settings &amp; Privacy → Data Privacy → Download my data → '
+        'Download larger data archive → Request Archive → upload the Connections.csv file here</b>. '
         'New connections are appended; duplicates are skipped automatically.'
         '</p></div>',
         unsafe_allow_html=True,

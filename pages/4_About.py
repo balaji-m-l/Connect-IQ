@@ -103,6 +103,21 @@ st.markdown(
       width: 100% !important; text-align: left !important;
       min-height: 0 !important;
     }
+    /* Prevent white text on click for all FAQ toggle buttons */
+    div[class*="st-key-faq_toggle_"] button,
+    div[class*="st-key-faq_toggle_"] button:active,
+    div[class*="st-key-faq_toggle_"] button:focus,
+    div[class*="st-key-faq_toggle_"] button:focus-visible,
+    div[class*="st-key-faq_toggle_"] button p,
+    div[class*="st-key-faq_toggle_"] button:active p,
+    div[class*="st-key-faq_toggle_"] button:focus p,
+    div[class*="st-key-faq_toggle_"] button:focus-visible p {
+      color: #222222 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
+      transition: color 0s !important;
+    }
 
     /* Footer */
     .cf-footer {
@@ -188,9 +203,11 @@ else:
             st.rerun()
     with login_c:
         if st.button("Log in", key="nav_login", type="secondary"):
+            st.session_state["_show_signup"] = False
             st.switch_page("pages/1_Login.py")
     with signup_c:
         if st.button("Sign up free", key="nav_signup", type="primary"):
+            st.session_state["_show_signup"] = True
             st.switch_page("pages/1_Login.py")
 
 # ── Content data ───────────────────────────────────────────────────────────────
@@ -227,9 +244,8 @@ FAQS = [
     ),
     (
         "How do I export my LinkedIn connections?",
-        "Go to **LinkedIn → Settings & Privacy → Data Privacy → Get a copy of your data → "
-        "select Connections → Request archive**. You'll get an email with a download link, "
-        "and the ZIP contains `Connections.csv` ready to upload.",
+        "Go to **LinkedIn → Settings & Privacy → Data Privacy → Download my data → "
+        "Download larger data archive → Request archive** → upload the **Connections.csv** file here.",
     ),
     (
         "Can I upload multiple files over time?",
@@ -320,18 +336,30 @@ if "faq_open_idx" not in st.session_state:
 # Inject per-item active styles
 faq_btn_css = "<style>"
 for _i in range(len(FAQS)):
-    _open = st.session_state["faq_open_idx"] == _i
+    _color = "#222222"
     faq_btn_css += f"""
-    [data-testid="faq_toggle_{_i}"] button {{
+    div[class*="st-key-faq_toggle_{_i}"] button,
+    div[class*="st-key-faq_toggle_{_i}"] button:active,
+    div[class*="st-key-faq_toggle_{_i}"] button:focus,
+    div[class*="st-key-faq_toggle_{_i}"] button:focus-visible {{
         background: transparent !important; border: none !important;
         box-shadow: none !important; width: 100% !important;
         padding: 20px 24px !important; text-align: left !important;
         min-height: 0 !important; border-radius: 0 !important;
         font-size: 15.5px !important; font-weight: 600 !important;
-        color: {"#FF385C" if _open else "var(--cf-text)"} !important;
+        color: {_color} !important;
         justify-content: space-between !important; display: flex !important;
+        outline: none !important; transition: color 0s !important;
     }}
-    [data-testid="faq_toggle_{_i}"] button:hover {{
+    div[class*="st-key-faq_toggle_{_i}"] button p,
+    div[class*="st-key-faq_toggle_{_i}"] button:active p,
+    div[class*="st-key-faq_toggle_{_i}"] button:focus p,
+    div[class*="st-key-faq_toggle_{_i}"] button:focus-visible p {{
+        color: {_color} !important;
+        transition: color 0s !important;
+    }}
+    div[class*="st-key-faq_toggle_{_i}"] button:hover,
+    div[class*="st-key-faq_toggle_{_i}"] button:hover p {{
         color: #FF385C !important; background: #FFF8F9 !important;
         transform: none !important;
     }}

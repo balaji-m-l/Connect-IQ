@@ -179,6 +179,23 @@ html, body, [class*="css"] {{
   transform: none !important;
   box-shadow: none !important;
 }}
+/* Prevent white text / missing border on secondary buttons when clicked/focused */
+.stButton > button[kind="secondary"]:active,
+.stButton > button[kind="secondary"]:focus,
+.stButton > button[kind="secondary"]:focus-visible {{
+  color: var(--cf-text) !important;
+  background: transparent !important;
+  border: 1.5px solid var(--cf-border-strong) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: color 0s !important;
+}}
+.stButton > button[kind="secondary"]:active p,
+.stButton > button[kind="secondary"]:focus p,
+.stButton > button[kind="secondary"]:focus-visible p {{
+  color: var(--cf-text) !important;
+  transition: color 0s !important;
+}}
 
 /* ── Inputs ── */
 .cf-input {{

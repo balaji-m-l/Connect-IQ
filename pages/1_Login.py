@@ -21,7 +21,10 @@ if is_authenticated():
 
 # Derive state from query params (survive reruns cleanly)
 show_forgot  = st.query_params.get("forgot")  == "1"
-show_signup  = st.query_params.get("signup")  == "1"
+if "_show_signup" in st.session_state:
+    show_signup = st.session_state.pop("_show_signup")
+else:
+    show_signup = st.query_params.get("signup") == "1"
 
 # ── Page-level CSS ────────────────────────────────────────────────────────────
 st.markdown(
@@ -140,9 +143,13 @@ with faq_c:
         st.session_state["_about_scroll"] = "cf-faq"
         st.switch_page("pages/4_About.py")
 with login_c:
-    st.button("Log in", key="nav_login", type="secondary")
+    if st.button("Log in", key="nav_login", type="secondary"):
+        st.query_params.clear()
+        st.rerun()
 with signup_c:
-    st.button("Sign up free", key="nav_signup", type="primary")
+    if st.button("Sign up free", key="nav_signup", type="primary"):
+        st.query_params["signup"] = "1"
+        st.rerun()
 
 # ── Logo + subtitle ───────────────────────────────────────────────────────────
 st.markdown(

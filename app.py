@@ -127,11 +127,12 @@ with faq_c:
 
 with login_c:
     if st.button("Log in", key="nav_login", type="secondary"):
+        st.session_state["_show_signup"] = False
         st.switch_page("pages/1_Login.py")
 
 with signup_c:
     if st.button("Sign up free", key="nav_signup", type="primary"):
-        st.query_params["signup"] = "1"
+        st.session_state["_show_signup"] = True
         st.switch_page("pages/1_Login.py")
 
 # ── Dark hero card (self-contained HTML) ──────────────────────────────────────
@@ -317,7 +318,8 @@ st.markdown(
                 <p style="color:#6B7280;font-size:.88rem;line-height:1.65;margin:0;
                           font-family:Inter,sans-serif;">
                     Go to LinkedIn &rarr; Settings &amp; Privacy &rarr; Data Privacy
-                    &rarr; Get a copy of your data &rarr; Connections.
+                    &rarr; Download my data &rarr; Download larger data archive &rarr; Request Archive
+                    &rarr; upload the <b>Connections.csv</b> file here.
                 </p>
             </div>
             <div style="background:#FFFFFF;border-radius:14px;padding:28px 24px;

@@ -256,7 +256,7 @@ with content:
                          use_container_width=True):
                 ok, msg = update_profile(new_name, new_headline)
                 if ok:
-                    st.toast("Profile saved ✓")
+                    st.session_state["profile_saved"] = True
                     st.rerun()
                 else:
                     st.error(msg)
@@ -264,6 +264,9 @@ with content:
             if st.button("Cancel", key="profile_cancel", type="secondary",
                          use_container_width=True):
                 st.rerun()
+
+        if st.session_state.pop("profile_saved", False):
+            st.success("Profile saved successfully ✓")
 
     # ── PASSWORD & SECURITY ───────────────────────────────────────────────────
     elif section == "password":
@@ -388,11 +391,15 @@ with content:
                     st.rerun()
 
         csv_data = export_connections_csv(user_id)
-        if _action_card("⬇️", "Export my data",
-                        "Download everything we hold about you as a CSV file.",
-                        "Export", "data_export"):
-            pass
-
+        st.markdown(
+            '<div class="cf-card" style="margin-bottom:12px;">'
+            '<div style="display:flex;gap:14px;align-items:flex-start;">'
+            '<div style="font-size:22px;">⬇️</div>'
+            '<div><div class="cf-h4">Export my data</div>'
+            '<p class="cf-small" style="margin-top:3px;">Download everything we hold about you as a CSV file.</p>'
+            '</div></div></div>',
+            unsafe_allow_html=True,
+        )
         if csv_data:
             st.download_button("⬇️ Download CSV", data=csv_data,
                                file_name="my_connections.csv", mime="text/csv",
@@ -400,7 +407,8 @@ with content:
         else:
             st.caption("No data to export yet.")
 
-        if _action_card("🗑️", "Clear all connections",
+        st.markdown('<div id="cf-data-clear"></div>', unsafe_allow_html=True)
+        if _action_card("🗑️", "Clear all data",
                         "Remove every imported connection and its embeddings. Your account stays active.",
                         "Clear data", "data_clear", destructive=True):
             st.session_state["confirm_clear"] = True
@@ -429,6 +437,13 @@ with content:
                              use_container_width=True):
                     st.session_state.confirm_clear = False
                     st.rerun()
+
+        if st.session_state.pop("settings_scroll", None) == "clear":
+            st.iframe(
+                '<script>window.parent.document.getElementById("cf-data-clear")'
+                '.scrollIntoView({behavior:"smooth",block:"start"});</script>',
+                height=1,
+            )
 
     # ── PRIVACY ───────────────────────────────────────────────────────────────
     elif section == "privacy":

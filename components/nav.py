@@ -60,6 +60,9 @@ def _handle_params() -> None:
     section = st.query_params.get("_section", "")
     if section in _VALID_SECTIONS:
         st.session_state.settings_section = section
+        scroll = st.query_params.get("_scroll", "")
+        if scroll:
+            st.session_state.settings_scroll = scroll
         st.switch_page("pages/5_Settings.py")
 
 
@@ -93,7 +96,7 @@ def render_app_nav(active: str = "") -> None:
         '<a class="cf-dd-item" href="?_section=password" target="_self">🔑&nbsp; Change password</a>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_section=data" target="_self">🗑️&nbsp; Clear all connections</a>'
+        '<a class="cf-dd-item" href="?_section=data&_scroll=clear" target="_self">🗑️&nbsp; Clear all data</a>'
         '</div>'
         '<div class="cf-av-dd-grp">'
         '<a class="cf-dd-item" href="?_section=privacy" target="_self">🔒&nbsp; Privacy &amp; data controls</a>'
