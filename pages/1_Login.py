@@ -11,10 +11,25 @@ st.set_page_config(
 
 inject_styles(hide_sidebar=True)
 
+# Fallback: detect verification fragment if Supabase redirects directly to /Login
+st.markdown("""
+<script>
+(function() {
+  var h = window.location.hash;
+  if (h && h.indexOf('type=signup') !== -1) {
+    window.location.replace('/Login?verified=1');
+  }
+})();
+</script>
+""", unsafe_allow_html=True)
+
 # Handle logout redirect: /Login?logout=1
 if st.query_params.get("logout"):
     logout()
     st.query_params.clear()
+
+if st.query_params.get("verified") == "1":
+    st.success("Email verified successfully! You can now sign in.")
 
 if is_authenticated():
     st.switch_page("pages/2_Home.py")
