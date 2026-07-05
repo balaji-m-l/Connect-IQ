@@ -108,6 +108,24 @@ def update_profile(full_name: str, headline: str = "") -> tuple[bool, str]:
         return False, str(exc)
 
 
+def delete_account(user_id: str) -> tuple[bool, str | None]:
+    from utils.data_processor import clear_connections
+    from utils.supabase_client import get_supabase_admin_client
+
+    ok, err = clear_connections(user_id)
+    if not ok:
+        return False, err
+
+    try:
+        admin = get_supabase_admin_client()
+        admin.auth.admin.delete_user(user_id)
+    except Exception as exc:
+        return False, str(exc)
+
+    logout()
+    return True, None
+
+
 def update_password(current_pw: str, new_pw: str) -> tuple[bool, str]:
     """Re-authenticate with current password, then set the new one."""
     email = get_user_email()

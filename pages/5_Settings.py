@@ -4,7 +4,7 @@ from components.styles import inject_styles, metric_tile
 from components.nav import render_app_nav
 from utils.auth import (
     is_authenticated, get_user_id, get_display_name, get_user_email,
-    get_user_headline, logout, update_profile, update_password,
+    get_user_headline, logout, update_profile, update_password, delete_account,
 )
 from utils.data_processor import (
     get_connection_stats, clear_connections, export_connections_csv,
@@ -154,9 +154,8 @@ def _delete_dialog():
         if st.button("Delete account", key="delete_dlg_go", type="primary",
                      use_container_width=True, disabled=(confirm != "DELETE")):
             with st.spinner("Deleting all data…"):
-                ok, err = clear_connections(user_id)
+                ok, err = delete_account(user_id)
             if ok:
-                logout()
                 st.switch_page("app.py")
             else:
                 st.error(f"Failed: {err}")
