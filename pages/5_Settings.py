@@ -161,6 +161,10 @@ def _delete_dialog():
                 st.error(f"Failed: {err}")
 
 
+if st.session_state.get("settings_section") == "delete":
+    st.session_state.settings_section = "profile"
+    st.session_state.show_delete_dialog = True
+
 if st.session_state.get("show_delete_dialog"):
     st.session_state.show_delete_dialog = False
     _delete_dialog()
