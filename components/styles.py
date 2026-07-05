@@ -378,6 +378,7 @@ html, body, [class*="css"] {{
 ::-webkit-scrollbar {{ width: 5px; }}
 ::-webkit-scrollbar-track {{ background: transparent; }}
 ::-webkit-scrollbar-thumb {{ background: #DDD; border-radius: 3px; }}
+
 </style>
 """
 
@@ -391,11 +392,43 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
 </style>"""
 
 
+_MOBILE_WALL = """
+<div id="cf-mobile-wall">
+  <div style="max-width:320px;padding:0 24px;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:20px;">💻</div>
+    <h2 style="font-size:1.4rem;font-weight:800;color:#222222;margin:0 0 12px;
+               font-family:Inter,sans-serif;">Better on desktop</h2>
+    <p style="font-size:.95rem;color:#717171;line-height:1.65;margin:0;
+              font-family:Inter,sans-serif;">
+      Connect-IQ is designed for desktop browsers.<br>
+      Please open this page on your computer for the best experience.
+    </p>
+  </div>
+</div>
+<style>
+#cf-mobile-wall { display: none; }
+@media (max-width: 768px) {
+  #cf-mobile-wall {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+  }
+  .block-container { visibility: hidden !important; }
+}
+</style>
+"""
+
+
 def inject_styles(hide_sidebar: bool = True) -> None:
     """Inject the full CSS theme into the current Streamlit page. Call once at app start."""
     st.markdown(CSS, unsafe_allow_html=True)
     if hide_sidebar:
         st.markdown(_HIDE_SIDEBAR, unsafe_allow_html=True)
+    st.markdown(_MOBILE_WALL, unsafe_allow_html=True)
 
 
 # ───────────────────────────────────────────────────────────────
