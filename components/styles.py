@@ -392,20 +392,21 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
 </style>"""
 
 
-_MOBILE_WALL = """
+def _build_mobile_wall(icon="💻", title="Better on desktop",
+                       body="Connect-IQ is designed for desktop browsers.<br>Please open this page on your computer for the best experience."):
+    return f"""
 <div id="cf-mobile-wall">
   <div style="max-width:320px;padding:0 24px;text-align:center;">
-    <div style="font-size:3rem;margin-bottom:20px;">💻</div>
+    <div style="font-size:3rem;margin-bottom:20px;">{icon}</div>
     <h2 style="font-size:1.4rem;font-weight:800;color:#222222;margin:0 0 12px;
-               font-family:Inter,sans-serif;">Better on desktop</h2>
+               font-family:Inter,sans-serif;">{title}</h2>
     <p style="font-size:.95rem;color:#717171;line-height:1.65;margin:0;
-              font-family:Inter,sans-serif;">
-      Connect-IQ is designed for desktop browsers.<br>
-      Please open this page on your computer for the best experience.
-    </p>
+              font-family:Inter,sans-serif;">{body}</p>
   </div>
-</div>
-<style>
+</div>"""
+
+
+_MOBILE_WALL_CSS = """<style>
 #cf-mobile-wall { display: none; }
 @media (max-width: 768px) {
   #cf-mobile-wall {
@@ -419,16 +420,18 @@ _MOBILE_WALL = """
   }
   .block-container { visibility: hidden !important; }
 }
-</style>
-"""
+</style>"""
 
 
-def inject_styles(hide_sidebar: bool = True) -> None:
+def inject_styles(hide_sidebar: bool = True, mobile_wall_icon: str = "💻",
+                  mobile_wall_title: str = "Better on desktop",
+                  mobile_wall_body: str = "Connect-IQ is designed for desktop browsers.<br>Please open this page on your computer for the best experience.") -> None:
     """Inject the full CSS theme into the current Streamlit page. Call once at app start."""
     st.markdown(CSS, unsafe_allow_html=True)
     if hide_sidebar:
         st.markdown(_HIDE_SIDEBAR, unsafe_allow_html=True)
-    st.markdown(_MOBILE_WALL, unsafe_allow_html=True)
+    wall_html = _build_mobile_wall(mobile_wall_icon, mobile_wall_title, mobile_wall_body)
+    st.markdown(wall_html + _MOBILE_WALL_CSS, unsafe_allow_html=True)
 
 
 # ───────────────────────────────────────────────────────────────

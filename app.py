@@ -92,18 +92,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Redirect email verification callbacks to the login page
-st.markdown("""
-<script>
-(function() {
-  var h = window.location.hash;
-  if (h && h.indexOf('type=signup') !== -1) {
-    window.location.replace('/Login?verified=1');
-  }
-})();
-</script>
-""", unsafe_allow_html=True)
-
 if st.session_state.get("user"):
     st.switch_page("pages/2_Home.py")
 

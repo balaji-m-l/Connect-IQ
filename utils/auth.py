@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from utils.supabase_client import get_supabase_client
 
@@ -18,9 +19,16 @@ def login(email: str, password: str) -> tuple[bool, str | None]:
 def signup(email: str, password: str, full_name: str = "") -> tuple[bool, str]:
     try:
         client = get_supabase_client()
-        credentials: dict = {"email": email, "password": password}
+        site_url = os.getenv("SITE_URL", "http://localhost:8501")
+        credentials: dict = {
+            "email": email,
+            "password": password,
+            "options": {
+                "email_redirect_to": f"{site_url}/Login?verified=1",
+            },
+        }
         if full_name.strip():
-            credentials["options"] = {"data": {"full_name": full_name.strip()}}
+            credentials["options"]["data"] = {"full_name": full_name.strip()}
         response = client.auth.sign_up(credentials)
         if response.user:
             return True, "Account created! Please check your email to verify, then sign in."

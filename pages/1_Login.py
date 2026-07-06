@@ -9,19 +9,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-inject_styles(hide_sidebar=True)
-
-# Fallback: detect verification fragment if Supabase redirects directly to /Login
-st.markdown("""
-<script>
-(function() {
-  var h = window.location.hash;
-  if (h && h.indexOf('type=signup') !== -1) {
-    window.location.replace('/Login?verified=1');
-  }
-})();
-</script>
-""", unsafe_allow_html=True)
+if st.query_params.get("verified") == "1":
+    inject_styles(
+        hide_sidebar=True,
+        mobile_wall_icon="✅",
+        mobile_wall_title="Email verified!",
+        mobile_wall_body="Your account is ready.<br>Open <strong>connect-iq.site</strong> on your desktop to sign in.",
+    )
+else:
+    inject_styles(hide_sidebar=True)
 
 # Handle logout redirect: /Login?logout=1
 if st.query_params.get("logout"):
@@ -29,7 +25,48 @@ if st.query_params.get("logout"):
     st.query_params.clear()
 
 if st.query_params.get("verified") == "1":
-    st.success("Email verified successfully! You can now sign in.")
+    import streamlit.components.v1 as components
+    components.html("""
+    <script>
+    (function() {
+      if (window.parent.document.getElementById('cf-verified-banner')) return;
+
+      var s = window.parent.document.createElement('style');
+      s.textContent = '@keyframes cf-shrink{from{width:100%}to{width:0%}}';
+      window.parent.document.head.appendChild(s);
+
+      var el = window.parent.document.createElement('div');
+      el.id = 'cf-verified-banner';
+      el.style.cssText = [
+        'position:fixed','top:28px','left:50%','transform:translateX(-50%)',
+        'z-index:99999','background:#fff','border:1px solid #EBEBEB',
+        'border-radius:16px','padding:28px 44px 22px','text-align:center',
+        'box-shadow:0 8px 32px rgba(0,0,0,.13)','min-width:300px',
+        'font-family:Inter,system-ui,sans-serif','transition:opacity .4s'
+      ].join(';');
+      el.innerHTML = [
+        '<button id="cf-vfy-close" style="position:absolute;top:10px;right:14px;',
+        'background:none;border:none;font-size:22px;line-height:1;cursor:pointer;',
+        'color:#717171;">&times;</button>',
+        '<div style="font-size:2.6rem;margin-bottom:10px;">&#x2705;</div>',
+        '<h3 style="font-size:1.15rem;font-weight:800;color:#222;margin:0 0 6px;">',
+        'Email verified!</h3>',
+        '<p style="color:#717171;font-size:.9rem;margin:0;">',
+        'Your account is ready. Sign in below.</p>',
+        '<div style="height:3px;background:#FF385C;border-radius:2px;margin-top:16px;',
+        'animation:cf-shrink 5s linear forwards;"></div>'
+      ].join('');
+      window.parent.document.body.appendChild(el);
+
+      function dismiss() {
+        el.style.opacity = '0';
+        setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 420);
+      }
+      window.parent.document.getElementById('cf-vfy-close').addEventListener('click', dismiss);
+      setTimeout(dismiss, 5000);
+    })();
+    </script>
+    """, height=0)
 
 if is_authenticated():
     st.switch_page("pages/2_Home.py")
