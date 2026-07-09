@@ -10,6 +10,20 @@ st.set_page_config(
 
 inject_styles(hide_sidebar=True)
 
+st.markdown(
+    """
+    <head>
+    <meta property="og:title" content="Connect-IQ – Visualize Your LinkedIn Network" />
+    <meta property="og:description" content="Upload your LinkedIn connections and discover who knows who, spot your strongest clusters, and find the best path to anyone in your network." />
+    <meta property="og:url" content="https://connect-iq.site" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Connect-IQ – Visualize Your LinkedIn Network" />
+    </head>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ── Landing-specific overrides ────────────────────────────────────────────────
 st.markdown(
     """

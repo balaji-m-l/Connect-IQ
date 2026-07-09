@@ -75,6 +75,7 @@ st.markdown(
     /* FAQ section */
     .faq-head { text-align: center; padding: 48px 0 32px; background: var(--cf-bg-soft);
                 border-radius: 20px 20px 0 0; }
+    .faq-head h2 a, .faq-head h2 a:hover { display: none !important; }
 
     /* Custom accordion */
     .cf-faq-wrap { max-width: 760px; margin: 0 auto; }
