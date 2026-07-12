@@ -112,6 +112,7 @@ def is_authenticated() -> bool:
                     "access_token":  resp.session.access_token,
                     "refresh_token": resp.session.refresh_token,
                 }
+                # Clean up both params on success
                 for p in ("_cf_r", "_cf_tried"):
                     if p in st.query_params:
                         st.query_params.pop(p)
@@ -119,9 +120,9 @@ def is_authenticated() -> bool:
         except Exception:
             pass
         _restore_cache.pop(marker, None)
-        for p in ("_cf_r", "_cf_tried"):
-            if p in st.query_params:
-                st.query_params.pop(p)
+    # Only clean up _cf_r here; leave _cf_tried so require_auth() can see it.
+    if "_cf_r" in st.query_params:
+        st.query_params.pop("_cf_r")
 
     return False
 
@@ -136,11 +137,16 @@ def require_auth() -> None:
     the session, and we return normally.  If sessionStorage has no marker
     (brand-new visitor), the JS redirects straight to Login.
     """
+    # Read _cf_tried BEFORE is_authenticated() might mutate query params.
+    already_tried = bool(st.query_params.get("_cf_tried"))
+
     if is_authenticated():
         return
 
-    if st.query_params.get("_cf_tried"):
+    if already_tried:
         # Restore was already attempted and failed — send to Login.
+        if "_cf_tried" in st.query_params:
+            st.query_params.pop("_cf_tried")
         st.switch_page("pages/1_Login.py")
         st.stop()
 
@@ -155,7 +161,7 @@ def require_auth() -> None:
             u.searchParams.set('_cf_tried', '1');
             window.parent.location.replace(u.toString());
           } catch(e) {
-            window.parent.location.replace('/1_Login');
+            window.parent.location.replace('/Login');
           }
         })();
         </script>""",
