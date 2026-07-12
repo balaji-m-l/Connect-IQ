@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1
 
 from components.styles import inject_styles, metric_tile
 from components.nav import render_app_nav
@@ -441,7 +442,7 @@ with content:
                     st.rerun()
 
         if st.session_state.pop("settings_scroll", None) == "clear":
-            st.iframe(
+            st.components.v1.html(
                 '<script>window.parent.document.getElementById("cf-data-clear")'
                 '.scrollIntoView({behavior:"smooth",block:"start"});</script>',
                 height=1,

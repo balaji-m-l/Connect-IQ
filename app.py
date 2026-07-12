@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1
 from components.styles import inject_styles
 
 st.set_page_config(
@@ -410,7 +411,7 @@ st.markdown(
 # ── Anchor scroll ─────────────────────────────────────────────────────────────
 if st.session_state.get("_scroll_to"):
     target = st.session_state.pop("_scroll_to")
-    st.iframe(
+    st.components.v1.html(
         f'<script>window.parent.document.getElementById("{target}")'
         f'.scrollIntoView({{behavior:"smooth",block:"start"}});</script>',
         height=1,

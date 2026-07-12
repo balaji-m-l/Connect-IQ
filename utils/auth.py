@@ -88,8 +88,8 @@ def is_authenticated() -> bool:
     if st.session_state.get("user") is not None:
         return True
 
-    # Restore from process-level cache using a marker passed via URL param.
-    # This fires after the browser sessionStorage JS redirects back here.
+    # Restore from process-level cache using the ?_cf_r marker that
+    # nav links embed in their URLs (HTML navigation creates a new session).
     marker = st.query_params.get("_cf_r")
     if marker and marker in _restore_cache:
         tokens = _restore_cache[marker]
