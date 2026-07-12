@@ -2,6 +2,20 @@ import os
 import streamlit as st
 from utils.supabase_client import get_supabase_client
 
+# Server-side cache: {streamlit_session_id -> {access_token, refresh_token}}
+# Keyed by the internal Streamlit session ID so tokens are isolated per browser
+# tab but survive HTML-link page navigations (which reconnect the same session).
+_token_cache: dict[str, dict] = {}
+
+
+def _sid() -> str | None:
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        ctx = get_script_run_ctx()
+        return ctx.session_id if ctx else None
+    except Exception:
+        return None
+
 
 def login(email: str, password: str) -> tuple[bool, str | None]:
     try:
@@ -12,8 +26,12 @@ def login(email: str, password: str) -> tuple[bool, str | None]:
         st.session_state.user = response.user
         st.session_state.session = response.session
         if response.session:
-            st.session_state["_access_token"] = response.session.access_token
-            st.session_state["_refresh_token"] = response.session.refresh_token
+            sid = _sid()
+            if sid:
+                _token_cache[sid] = {
+                    "access_token":  response.session.access_token,
+                    "refresh_token": response.session.refresh_token,
+                }
         return True, None
     except Exception as e:
         return False, str(e)
@@ -60,11 +78,14 @@ def get_display_name() -> str:
 def logout() -> None:
     from utils.chat_store import clear_user as _clear_chat
     user_id = get_user_id()
+    sid = _sid()
     try:
         client = get_supabase_client()
         client.auth.sign_out()
     except Exception:
         pass
+    if sid:
+        _token_cache.pop(sid, None)
     if user_id:
         _clear_chat(user_id)
     for key in list(st.session_state.keys()):
@@ -74,21 +95,28 @@ def logout() -> None:
 def is_authenticated() -> bool:
     if st.session_state.get("user") is not None:
         return True
-    # Restore from stored tokens (survive page navigation within the same tab).
-    access_token = st.session_state.get("_access_token")
-    refresh_token = st.session_state.get("_refresh_token")
-    if access_token and refresh_token:
+    # Restore from server-side token cache (keyed by Streamlit session ID).
+    # This survives HTML-link page navigation because Streamlit reconnects
+    # the same session ID for the same browser tab.
+    sid = _sid()
+    if sid and sid in _token_cache:
+        tokens = _token_cache[sid]
         try:
             client = get_supabase_client()
-            resp = client.auth.set_session(access_token, refresh_token)
+            resp = client.auth.set_session(
+                tokens["access_token"], tokens["refresh_token"]
+            )
             if resp and getattr(resp, "user", None):
                 st.session_state.user = resp.user
                 st.session_state.session = resp.session
-                st.session_state["_access_token"] = resp.session.access_token
-                st.session_state["_refresh_token"] = resp.session.refresh_token
+                _token_cache[sid] = {
+                    "access_token":  resp.session.access_token,
+                    "refresh_token": resp.session.refresh_token,
+                }
                 return True
         except Exception:
             pass
+        _token_cache.pop(sid, None)
     return False
 
 
@@ -142,7 +170,6 @@ def delete_account(user_id: str) -> tuple[bool, str | None]:
 
 
 def update_password(current_pw: str, new_pw: str) -> tuple[bool, str]:
-    """Re-authenticate with current password, then set the new one."""
     email = get_user_email()
     if not email:
         return False, "No authenticated user found."
