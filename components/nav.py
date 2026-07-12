@@ -1,31 +1,25 @@
 """
-nav.py — Pure-HTML top navigation bar for Connect-IQ.
+nav.py — Top navigation bar for Connect-IQ.
 
-IMPORTANT: the HTML block is kept at zero indentation inside st.markdown.
-Streamlit's markdown processor treats any line with 4+ leading spaces as a
-fenced code block, which would render raw HTML tags as visible text.
+Navigation uses hidden Streamlit buttons triggered by JavaScript onclick
+handlers instead of HTML <a href> links. This ensures st.switch_page() is
+used for all navigation, which preserves st.session_state across page changes.
+HTML <a href> links cause browser navigation → new WebSocket session →
+session_state lost → user gets kicked out.
 """
 
 import streamlit as st
 from utils.auth import get_display_name, get_user_email, logout as _do_logout
 
-_PAGE_MAP = {
-    "dashboard": "pages/2_Home.py",
-    "chat":      "pages/3_Chat.py",
-    "settings":  "pages/5_Settings.py",
-    "about":     "pages/4_About.py",
-}
-
 _VALID_SECTIONS = {"profile", "password", "data", "privacy", "delete"}
 
-# CSS lives in its own call so brace-escaping doesn't bleed into the HTML f-string.
 _NAV_CSS = """<style>
 [data-testid="stHeader"],[data-testid="stDecoration"],#stDecoration{display:none!important}
 .block-container{padding-top:0!important;overflow:visible!important}
 .stMarkdown,[data-testid="stMarkdownContainer"],[data-testid="stVerticalBlock"],.main{overflow:visible!important}
 .cf-main-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #EBEBEB;padding:14px 32px;margin-bottom:28px;font-family:Inter,system-ui,sans-serif;position:relative;z-index:200}
 .cf-main-nav a,.cf-main-nav a:visited,.cf-main-nav a:hover,.cf-main-nav a:active{text-decoration:none!important;color:inherit}
-.cf-mn-logo{display:inline-flex;align-items:center;gap:8px;font-size:19px;font-weight:800;color:#FF385C!important;white-space:nowrap;line-height:1}
+.cf-mn-logo{display:inline-flex;align-items:center;gap:8px;font-size:19px;font-weight:800;color:#FF385C!important;white-space:nowrap;line-height:1;cursor:pointer}
 .cf-mn-logo .ico{font-size:22px;line-height:1}
 .cf-nav-right{display:flex;align-items:center;gap:4px}
 .cf-nav-link{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:#717171!important;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;line-height:1.2}
@@ -47,16 +41,35 @@ _NAV_CSS = """<style>
 .cf-dd-item:hover{background:#F7F7F7;color:#222!important}
 .cf-dd-item.danger{color:#D92D20!important}
 .cf-dd-item.danger:hover{background:#FEE4E2;color:#D92D20!important}
+.st-key-nav_btn_home,.st-key-nav_btn_dash,.st-key-nav_btn_chat,
+.st-key-nav_btn_logout,.st-key-nav_btn_s_profile,.st-key-nav_btn_s_password,
+.st-key-nav_btn_s_data,.st-key-nav_btn_s_privacy,.st-key-nav_btn_s_delete{
+position:fixed!important;left:-9999px!important;top:-9999px!important;
+width:1px!important;height:1px!important;overflow:hidden!important}
 </style>"""
+
+# JS helper — clicks a hidden Streamlit button by its st-key CSS class
+def _js(key: str) -> str:
+    return f"document.querySelector('.st-key-{key} button').click()"
 
 
 def _handle_params() -> None:
-    if st.query_params.get("_logout") == "1":
+    """Handle legacy deep-link query params (e.g. emailed links with ?_nav=xxx)."""
+    logout = st.query_params.get("_logout")
+    if logout == "1":
         _do_logout()
         st.switch_page("app.py")
+
     nav = st.query_params.get("_nav", "")
-    if nav in _PAGE_MAP:
-        st.switch_page(_PAGE_MAP[nav])
+    page_map = {
+        "dashboard": "pages/2_Home.py",
+        "chat":      "pages/3_Chat.py",
+        "settings":  "pages/5_Settings.py",
+        "about":     "pages/4_About.py",
+    }
+    if nav in page_map:
+        st.switch_page(page_map[nav])
+
     section = st.query_params.get("_section", "")
     if section in _VALID_SECTIONS:
         st.session_state.settings_section = section
@@ -67,7 +80,7 @@ def _handle_params() -> None:
 
 
 def render_app_nav(active: str = "") -> None:
-    """Render the top nav bar as a single HTML block. Call once per authenticated page."""
+    """Render the top nav bar. Call once per authenticated page."""
     _handle_params()
 
     name     = get_display_name()
@@ -76,14 +89,35 @@ def render_app_nav(active: str = "") -> None:
     dash_cls = "cf-nav-link active" if active == "dashboard" else "cf-nav-link"
     chat_cls = "cf-nav-link active" if active == "chat"      else "cf-nav-link"
 
-    # HTML lines must have < 4 leading spaces — 4+ spaces = markdown code block.
-    # Keep every line at 0 or 2 spaces of indentation only.
+    st.markdown(_NAV_CSS, unsafe_allow_html=True)
+
+    # ── Hidden navigation buttons ─────────────────────────────────────────────
+    # These are positioned off-screen via CSS and clicked programmatically by
+    # the JavaScript onclick handlers in the HTML nav below.
+    if st.button("home",     key="nav_btn_home"):
+        st.switch_page("app.py")
+    if st.button("dash",     key="nav_btn_dash"):
+        st.switch_page("pages/2_Home.py")
+    if st.button("chat",     key="nav_btn_chat"):
+        st.switch_page("pages/3_Chat.py")
+    if st.button("logout",   key="nav_btn_logout"):
+        _do_logout()
+        st.switch_page("app.py")
+
+    for sec in ("profile", "password", "data", "privacy", "delete"):
+        if st.button(sec, key=f"nav_btn_s_{sec}"):
+            st.session_state.settings_section = sec
+            if sec == "data":
+                st.session_state.settings_scroll = "clear"
+            st.switch_page("pages/5_Settings.py")
+
+    # ── HTML nav (appearance only — onclick triggers hidden buttons above) ────
     nav_html = (
         '<div class="cf-main-nav">'
-        f'<a class="cf-mn-logo" href="?_nav=dashboard" target="_self"><span class="ico">🔗</span> Connect-IQ</a>'
+        f'<span class="cf-mn-logo" onclick="{_js("nav_btn_home")}"><span class="ico">🔗</span> Connect-IQ</span>'
         '<div class="cf-nav-right">'
-        f'<a class="{dash_cls}" href="?_nav=dashboard" target="_self">📊 Dashboard</a>'
-        f'<a class="{chat_cls}" href="?_nav=chat" target="_self">💬 Chat</a>'
+        f'<span class="{dash_cls}" onclick="{_js("nav_btn_dash")}">📊 Dashboard</span>'
+        f'<span class="{chat_cls}" onclick="{_js("nav_btn_chat")}">💬 Chat</span>'
         '<div class="cf-nav-avatar-wrap">'
         f'<div class="cf-nav-avatar">{initials}</div>'
         '<div class="cf-av-dd">'
@@ -92,26 +126,24 @@ def render_app_nav(active: str = "") -> None:
         f'<div class="cf-av-dd-email">{email}</div>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_nav=settings" target="_self">👤&nbsp; Profile settings</a>'
-        '<a class="cf-dd-item" href="?_section=password" target="_self">🔑&nbsp; Change password</a>'
+        f'<span class="cf-dd-item" onclick="{_js("nav_btn_s_profile")}">👤&nbsp; Profile settings</span>'
+        f'<span class="cf-dd-item" onclick="{_js("nav_btn_s_password")}">🔑&nbsp; Change password</span>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_section=data&_scroll=clear" target="_self">🗑️&nbsp; Clear all data</a>'
+        f'<span class="cf-dd-item" onclick="{_js("nav_btn_s_data")}">🗑️&nbsp; Clear all data</span>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_section=privacy" target="_self">🔒&nbsp; Privacy &amp; data controls</a>'
-        '<a class="cf-dd-item" href="?_logout=1" target="_self">↪&nbsp; Log out</a>'
+        f'<span class="cf-dd-item" onclick="{_js("nav_btn_s_privacy")}">🔒&nbsp; Privacy &amp; data controls</span>'
+        f'<span class="cf-dd-item" onclick="{_js("nav_btn_logout")}">↪&nbsp; Log out</span>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item danger" href="?_section=delete" target="_self">⚠️&nbsp; Delete account</a>'
+        f'<span class="cf-dd-item danger" onclick="{_js("nav_btn_s_delete")}">⚠️&nbsp; Delete account</span>'
         '</div>'
-        '</div>'  # .cf-av-dd
-        '</div>'  # .cf-nav-avatar-wrap
-        '</div>'  # .cf-nav-right
-        '</div>'  # .cf-main-nav
+        '</div>'
+        '</div>'
+        '</div>'
+        '</div>'
     )
-
-    st.markdown(_NAV_CSS, unsafe_allow_html=True)
     st.markdown(nav_html, unsafe_allow_html=True)
 
 
