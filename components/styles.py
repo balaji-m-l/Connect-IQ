@@ -76,6 +76,19 @@ html, body, [class*="css"] {{
 
 #MainMenu, footer, header {{ visibility: hidden; }}
 
+/* Hide Streamlit's auto-generated anchor-link icons on all headings */
+[data-testid="stHeaderActionElements"],
+.stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a,
+.stMarkdown h4 a, .stMarkdown h5 a, .stMarkdown h6 a,
+[data-testid="stMarkdownContainer"] h1 > a,
+[data-testid="stMarkdownContainer"] h2 > a,
+[data-testid="stMarkdownContainer"] h3 > a,
+[data-testid="stMarkdownContainer"] h4 > a,
+[data-testid="stMarkdownContainer"] h5 > a,
+[data-testid="stMarkdownContainer"] h6 > a {{
+  display: none !important;
+}}
+
 .block-container {{
   padding-top: 2rem !important;
   padding-bottom: 4rem !important;
