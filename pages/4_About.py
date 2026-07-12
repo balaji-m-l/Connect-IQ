@@ -302,10 +302,13 @@ st.markdown(
 # ── FAQ (two-column, always expanded) ─────────────────────────────────────────
 st.markdown('<div id="cf-faq"></div>', unsafe_allow_html=True)
 
+def _md_bold(text: str) -> str:
+    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+
 _faq_cells = "".join(
     f'<div class="cf-faq-cell">'
     f'<div class="q">{q}</div>'
-    f'<div class="a">{re.sub(r"\\*\\*(.+?)\\*\\*", r"<strong>\\1</strong>", a)}</div>'
+    f'<div class="a">{_md_bold(a)}</div>'
     f'</div>'
     for q, a in FAQS
 )
