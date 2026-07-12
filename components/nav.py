@@ -44,13 +44,12 @@ _NAV_CSS = """<style>
 .st-key-nav_btn_home,.st-key-nav_btn_dash,.st-key-nav_btn_chat,
 .st-key-nav_btn_logout,.st-key-nav_btn_s_profile,.st-key-nav_btn_s_password,
 .st-key-nav_btn_s_data,.st-key-nav_btn_s_privacy,.st-key-nav_btn_s_delete{
-position:fixed!important;left:-9999px!important;top:-9999px!important;
-width:1px!important;height:1px!important;overflow:hidden!important}
+display:none!important}
 </style>"""
 
 # JS helper — clicks a hidden Streamlit button by its st-key CSS class
 def _js(key: str) -> str:
-    return f"document.querySelector('.st-key-{key} button').click()"
+    return f"(function(){{var b=document.querySelector('.st-key-{key} button');if(b){{b.click();}}}})();"
 
 
 def _handle_params() -> None:
