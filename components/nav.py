@@ -76,14 +76,19 @@ def render_app_nav(active: str = "") -> None:
     dash_cls = "cf-nav-link active" if active == "dashboard" else "cf-nav-link"
     chat_cls = "cf-nav-link active" if active == "chat"      else "cf-nav-link"
 
+    # Embed the restore marker directly in every nav URL so the new Streamlit
+    # session created by HTML navigation can restore auth without needing JS.
+    marker = st.session_state.get("_cf_marker", "")
+    r = f"&_cf_r={marker}" if marker else ""
+
     # HTML lines must have < 4 leading spaces — 4+ spaces = markdown code block.
     # Keep every line at 0 or 2 spaces of indentation only.
     nav_html = (
         '<div class="cf-main-nav">'
-        f'<a class="cf-mn-logo" href="?_nav=dashboard" target="_self"><span class="ico">🔗</span> Connect-IQ</a>'
+        f'<a class="cf-mn-logo" href="?_nav=dashboard{r}" target="_self"><span class="ico">🔗</span> Connect-IQ</a>'
         '<div class="cf-nav-right">'
-        f'<a class="{dash_cls}" href="?_nav=dashboard" target="_self">📊 Dashboard</a>'
-        f'<a class="{chat_cls}" href="?_nav=chat" target="_self">💬 Chat</a>'
+        f'<a class="{dash_cls}" href="?_nav=dashboard{r}" target="_self">📊 Dashboard</a>'
+        f'<a class="{chat_cls}" href="?_nav=chat{r}" target="_self">💬 Chat</a>'
         '<div class="cf-nav-avatar-wrap">'
         f'<div class="cf-nav-avatar">{initials}</div>'
         '<div class="cf-av-dd">'
@@ -92,18 +97,18 @@ def render_app_nav(active: str = "") -> None:
         f'<div class="cf-av-dd-email">{email}</div>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_nav=settings" target="_self">👤&nbsp; Profile settings</a>'
-        '<a class="cf-dd-item" href="?_section=password" target="_self">🔑&nbsp; Change password</a>'
+        f'<a class="cf-dd-item" href="?_nav=settings{r}" target="_self">👤&nbsp; Profile settings</a>'
+        f'<a class="cf-dd-item" href="?_section=password{r}" target="_self">🔑&nbsp; Change password</a>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_section=data&_scroll=clear" target="_self">🗑️&nbsp; Clear all data</a>'
+        f'<a class="cf-dd-item" href="?_section=data&_scroll=clear{r}" target="_self">🗑️&nbsp; Clear all data</a>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item" href="?_section=privacy" target="_self">🔒&nbsp; Privacy &amp; data controls</a>'
+        f'<a class="cf-dd-item" href="?_section=privacy{r}" target="_self">🔒&nbsp; Privacy &amp; data controls</a>'
         '<a class="cf-dd-item" href="?_logout=1" target="_self">↪&nbsp; Log out</a>'
         '</div>'
         '<div class="cf-av-dd-grp">'
-        '<a class="cf-dd-item danger" href="?_section=delete" target="_self">⚠️&nbsp; Delete account</a>'
+        f'<a class="cf-dd-item danger" href="?_section=delete{r}" target="_self">⚠️&nbsp; Delete account</a>'
         '</div>'
         '</div>'  # .cf-av-dd
         '</div>'  # .cf-nav-avatar-wrap

@@ -1,6 +1,5 @@
 import streamlit as st
 from components.styles import inject_styles
-import streamlit.components.v1 as _components
 from utils.auth import login, logout, signup, reset_password, is_authenticated
 
 st.set_page_config(
@@ -251,18 +250,7 @@ with form_col:
                     with st.spinner("Signing in…"):
                         ok, err = login(email, password)
                     if ok:
-                        marker = st.session_state.get("_cf_marker", "")
-                        # Write marker to sessionStorage and navigate — done in
-                        # one JS call so sessionStorage is guaranteed to be set
-                        # before the browser loads the next page.
-                        _components.html(
-                            f"<script>"
-                            f"try{{window.parent.sessionStorage.setItem('cf_marker','{marker}');}}catch(e){{}}"
-                            f"window.parent.location.replace('/Home');"
-                            f"</script>",
-                            height=0,
-                        )
-                        st.stop()
+                        st.switch_page("pages/2_Home.py")
                     else:
                         st.error(f"Sign-in failed: {err}")
 
