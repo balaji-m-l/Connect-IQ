@@ -11,6 +11,9 @@ def login(email: str, password: str) -> tuple[bool, str | None]:
         )
         st.session_state.user = response.user
         st.session_state.session = response.session
+        if response.session:
+            st.session_state["_access_token"] = response.session.access_token
+            st.session_state["_refresh_token"] = response.session.refresh_token
         return True, None
     except Exception as e:
         return False, str(e)
@@ -71,17 +74,21 @@ def logout() -> None:
 def is_authenticated() -> bool:
     if st.session_state.get("user") is not None:
         return True
-    # Restore from the Supabase client's in-memory session (survives page reloads
-    # within the same server process, e.g. after HTML-link navigation).
-    try:
-        client = get_supabase_client()
-        session = client.auth.get_session()
-        if session and getattr(session, "user", None):
-            st.session_state.user = session.user
-            st.session_state.session = session
-            return True
-    except Exception:
-        pass
+    # Restore from stored tokens (survive page navigation within the same tab).
+    access_token = st.session_state.get("_access_token")
+    refresh_token = st.session_state.get("_refresh_token")
+    if access_token and refresh_token:
+        try:
+            client = get_supabase_client()
+            resp = client.auth.set_session(access_token, refresh_token)
+            if resp and getattr(resp, "user", None):
+                st.session_state.user = resp.user
+                st.session_state.session = resp.session
+                st.session_state["_access_token"] = resp.session.access_token
+                st.session_state["_refresh_token"] = resp.session.refresh_token
+                return True
+        except Exception:
+            pass
     return False
 
 
