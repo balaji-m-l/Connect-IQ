@@ -1,7 +1,6 @@
 import os
 import uuid
 import streamlit as st
-import streamlit.components.v1 as _components
 from utils.supabase_client import get_supabase_client
 
 # Process-level cache: {marker_uuid -> {access_token, refresh_token}}
@@ -83,11 +82,6 @@ def logout() -> None:
         _clear_chat(user_id)
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    # Clear marker from browser sessionStorage
-    _components.html(
-        "<script>try{window.parent.sessionStorage.removeItem('cf_marker');}catch(e){}</script>",
-        height=0,
-    )
 
 
 def is_authenticated() -> bool:
@@ -129,62 +123,16 @@ def is_authenticated() -> bool:
 
 def require_auth() -> None:
     """
-    Drop-in replacement for `if not is_authenticated(): st.switch_page(login)`.
-
-    On first auth failure, injects JS to read the restore marker from
-    sessionStorage and redirect back to this page with ?_cf_r=MARKER.
-    On the second load the marker is in the URL, is_authenticated() restores
-    the session, and we return normally.  If sessionStorage has no marker
-    (brand-new visitor), the JS redirects straight to Login.
+    Gate for authenticated pages.  Auth is restored either from
+    session_state (same Streamlit session) or from the ?_cf_r=MARKER
+    URL param that nav links embed (new session after HTML navigation).
+    Anything else — including a copied URL opened in a new tab — is
+    treated as not logged in and sent to the Login page.
     """
-    # Read _cf_tried BEFORE is_authenticated() might mutate query params.
-    already_tried = bool(st.query_params.get("_cf_tried"))
-
     if is_authenticated():
         return
-
-    if already_tried:
-        # Restore was already attempted and failed — send to Login.
-        if "_cf_tried" in st.query_params:
-            st.query_params.pop("_cf_tried")
-        st.switch_page("pages/1_Login.py")
-        st.stop()
-
-    # First failure — ask the browser to look up the marker.
-    _components.html(
-        """<script>
-        (function() {
-          try {
-            var m = window.parent.sessionStorage.getItem('cf_marker');
-            var u = new URL(window.parent.location.href);
-            if (m) { u.searchParams.set('_cf_r', m); }
-            u.searchParams.set('_cf_tried', '1');
-            window.parent.location.replace(u.toString());
-          } catch(e) {
-            window.parent.location.replace('/Login');
-          }
-        })();
-        </script>""",
-        height=0,
-    )
-    st.markdown(
-        '<div style="display:flex;justify-content:center;align-items:center;'
-        'height:60vh;font-family:Inter,sans-serif;color:#717171;font-size:14px;">'
-        'Loading…</div>',
-        unsafe_allow_html=True,
-    )
+    st.switch_page("pages/1_Login.py")
     st.stop()
-
-
-def write_session_marker() -> None:
-    """Call this once after a successful login to persist the marker in sessionStorage."""
-    marker = st.session_state.get("_cf_marker", "")
-    if not marker:
-        return
-    _components.html(
-        f"<script>try{{window.parent.sessionStorage.setItem('cf_marker','{marker}');}}catch(e){{}}</script>",
-        height=0,
-    )
 
 
 def get_user_id() -> str | None:
