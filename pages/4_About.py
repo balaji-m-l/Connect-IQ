@@ -1,3 +1,5 @@
+import re
+
 import streamlit as st
 import streamlit.components.v1
 
@@ -73,52 +75,33 @@ st.markdown(
     .tech-name { font-size: 1.05rem; font-weight: 700; color: var(--cf-text); }
     .tech-role { font-size: .83rem; color: var(--cf-text-muted); margin-top: 4px; }
 
-    /* FAQ section */
-    .faq-head { text-align: center; padding: 48px 0 32px; background: var(--cf-bg-soft);
-                border-radius: 20px 20px 0 0; }
-    .faq-head h2 a, .faq-head h2 a:hover { display: none !important; }
-
-    /* Custom accordion */
-    .cf-faq-wrap { max-width: 760px; margin: 0 auto; }
-    .cf-faq-item {
-      background: #fff; border: 1px solid var(--cf-border);
-      border-radius: 14px; margin-bottom: 8px; overflow: hidden;
+    /* FAQ section — two-column, always expanded */
+    .cf-faq-sec {
+      background: var(--cf-bg-soft); border-radius: 20px;
+      padding: 48px 60px 80px;
     }
-    .cf-faq-q {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px 24px; cursor: pointer;
-      font-size: 15.5px; font-weight: 600; color: var(--cf-text);
+    .cf-faq-sec .faq-head { text-align: center; margin-bottom: 36px; }
+    .cf-faq-pill {
+      display: inline-block; background: #FFFFFF; color: #FF385C;
+      font-size: .78rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; border-radius: 20px;
+      padding: 5px 14px; margin-bottom: 14px;
     }
-    .cf-faq-icon {
-      flex-shrink: 0; width: 22px; height: 22px; font-size: 20px;
-      line-height: 1; color: #717171; transition: transform .2s;
+    .cf-faq-sec h2 {
+      font-size: 32px; font-weight: 800; color: var(--cf-text);
+      letter-spacing: -0.5px; margin: 0; padding: 0;
     }
-    .cf-faq-icon.open { transform: rotate(45deg); color: #FF385C; }
-    .cf-faq-a {
-      padding: 0 24px 18px; font-size: 14.5px;
-      color: var(--cf-text-muted); line-height: 1.65;
+    .cf-faq-grid {
+      max-width: 1000px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px;
     }
-    /* Streamlit button reset inside FAQ rows */
-    .cf-faq-btn button {
-      background: transparent !important; border: none !important;
-      box-shadow: none !important; padding: 0 !important;
-      width: 100% !important; text-align: left !important;
-      min-height: 0 !important;
+    .cf-faq-cell { padding: 18px 0; border-top: 1px solid var(--cf-border); }
+    .cf-faq-cell .q {
+      font-size: 15.5px; font-weight: 700; color: var(--cf-text);
+      margin-bottom: 8px;
     }
-    /* Prevent white text on click for all FAQ toggle buttons */
-    div[class*="st-key-faq_toggle_"] button,
-    div[class*="st-key-faq_toggle_"] button:active,
-    div[class*="st-key-faq_toggle_"] button:focus,
-    div[class*="st-key-faq_toggle_"] button:focus-visible,
-    div[class*="st-key-faq_toggle_"] button p,
-    div[class*="st-key-faq_toggle_"] button:active p,
-    div[class*="st-key-faq_toggle_"] button:focus p,
-    div[class*="st-key-faq_toggle_"] button:focus-visible p {
-      color: #222222 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      outline: none !important;
-      transition: color 0s !important;
+    .cf-faq-cell .a {
+      font-size: 14px; color: var(--cf-text-muted); line-height: 1.6;
     }
 
     /* Footer */
@@ -316,82 +299,28 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── FAQ ────────────────────────────────────────────────────────────────────────
+# ── FAQ (two-column, always expanded) ─────────────────────────────────────────
 st.markdown('<div id="cf-faq"></div>', unsafe_allow_html=True)
+
+_faq_cells = "".join(
+    f'<div class="cf-faq-cell">'
+    f'<div class="q">{q}</div>'
+    f'<div class="a">{re.sub(r"\\*\\*(.+?)\\*\\*", r"<strong>\\1</strong>", a)}</div>'
+    f'</div>'
+    for q, a in FAQS
+)
 st.markdown(
-    """
-    <div class="faq-head">
-      <span style="display:inline-block;background:#FFE8EE;color:#FF385C;
-        font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-        border-radius:20px;padding:5px 14px;margin-bottom:14px;">FAQ</span>
-      <h2 style="font-size:2rem;font-weight:800;color:var(--cf-text);margin:12px 0 0;">
-        Frequently asked questions
-      </h2>
+    f"""
+    <div class="cf-faq-sec">
+      <div class="faq-head">
+        <span class="cf-faq-pill">FAQ</span>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="cf-faq-grid">{_faq_cells}</div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-
-if "faq_open_idx" not in st.session_state:
-    st.session_state["faq_open_idx"] = 0
-
-# Inject per-item active styles
-faq_btn_css = "<style>"
-for _i in range(len(FAQS)):
-    _color = "#222222"
-    faq_btn_css += f"""
-    div[class*="st-key-faq_toggle_{_i}"] button,
-    div[class*="st-key-faq_toggle_{_i}"] button:active,
-    div[class*="st-key-faq_toggle_{_i}"] button:focus,
-    div[class*="st-key-faq_toggle_{_i}"] button:focus-visible {{
-        background: transparent !important; border: none !important;
-        box-shadow: none !important; width: 100% !important;
-        padding: 20px 24px !important; text-align: left !important;
-        min-height: 0 !important; border-radius: 0 !important;
-        font-size: 15.5px !important; font-weight: 600 !important;
-        color: {_color} !important;
-        justify-content: space-between !important; display: flex !important;
-        outline: none !important; transition: color 0s !important;
-    }}
-    div[class*="st-key-faq_toggle_{_i}"] button p,
-    div[class*="st-key-faq_toggle_{_i}"] button:active p,
-    div[class*="st-key-faq_toggle_{_i}"] button:focus p,
-    div[class*="st-key-faq_toggle_{_i}"] button:focus-visible p {{
-        color: {_color} !important;
-        transition: color 0s !important;
-    }}
-    div[class*="st-key-faq_toggle_{_i}"] button:hover,
-    div[class*="st-key-faq_toggle_{_i}"] button:hover p {{
-        color: #FF385C !important; background: #FFF8F9 !important;
-        transform: none !important;
-    }}
-    """
-faq_btn_css += "</style>"
-st.markdown(faq_btn_css, unsafe_allow_html=True)
-
-_, faq_col, _ = st.columns([1, 3, 1])
-with faq_col:
-    for i, (question, answer) in enumerate(FAQS):
-        is_open = st.session_state["faq_open_idx"] == i
-        icon = "×" if is_open else "+"
-
-        # Card wrapper open
-        st.markdown(
-            f'<div class="cf-faq-item" style="border-color:{"#FF385C" if is_open else "var(--cf-border)"};">',
-            unsafe_allow_html=True,
-        )
-        # Clickable row button
-        if st.button(f"{question}  {icon}", key=f"faq_toggle_{i}"):
-            st.session_state["faq_open_idx"] = i if not is_open else -1
-            st.rerun()
-        # Answer (visible when open)
-        if is_open:
-            st.markdown(
-                f'<div class="cf-faq-a">{answer}</div>',
-                unsafe_allow_html=True,
-            )
-        # Card wrapper close
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown(
