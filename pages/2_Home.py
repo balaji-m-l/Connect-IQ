@@ -4,7 +4,7 @@ import pandas as pd
 from charts import hbar_chart, area_chart, donut_chart
 from components.styles import inject_styles, metric_tile, chart_card
 from components.nav import render_app_nav
-from utils.auth import is_authenticated, get_user_id, get_display_name
+from utils.auth import require_auth, get_user_id, get_display_name
 from utils.data_processor import process_linkedin_file, save_connections, get_connections
 
 st.set_page_config(
@@ -16,8 +16,7 @@ st.set_page_config(
 
 inject_styles(hide_sidebar=True)
 
-if not is_authenticated():
-    st.switch_page("pages/1_Login.py")
+require_auth()
 
 render_app_nav(active="dashboard")
 

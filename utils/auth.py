@@ -1,20 +1,13 @@
 import os
+import uuid
 import streamlit as st
+import streamlit.components.v1 as _components
 from utils.supabase_client import get_supabase_client
 
-# Server-side cache: {streamlit_session_id -> {access_token, refresh_token}}
-# Keyed by the internal Streamlit session ID so tokens are isolated per browser
-# tab but survive HTML-link page navigations (which reconnect the same session).
-_token_cache: dict[str, dict] = {}
-
-
-def _sid() -> str | None:
-    try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
-        ctx = get_script_run_ctx()
-        return ctx.session_id if ctx else None
-    except Exception:
-        return None
+# Process-level cache: {marker_uuid -> {access_token, refresh_token}}
+# Survives HTML-link navigation because it lives in the Python process,
+# not in per-request session_state.
+_restore_cache: dict[str, dict] = {}
 
 
 def login(email: str, password: str) -> tuple[bool, str | None]:
@@ -26,12 +19,12 @@ def login(email: str, password: str) -> tuple[bool, str | None]:
         st.session_state.user = response.user
         st.session_state.session = response.session
         if response.session:
-            sid = _sid()
-            if sid:
-                _token_cache[sid] = {
-                    "access_token":  response.session.access_token,
-                    "refresh_token": response.session.refresh_token,
-                }
+            marker = str(uuid.uuid4())
+            _restore_cache[marker] = {
+                "access_token":  response.session.access_token,
+                "refresh_token": response.session.refresh_token,
+            }
+            st.session_state["_cf_marker"] = marker
         return True, None
     except Exception as e:
         return False, str(e)
@@ -78,29 +71,34 @@ def get_display_name() -> str:
 def logout() -> None:
     from utils.chat_store import clear_user as _clear_chat
     user_id = get_user_id()
-    sid = _sid()
+    marker = st.session_state.get("_cf_marker")
     try:
         client = get_supabase_client()
         client.auth.sign_out()
     except Exception:
         pass
-    if sid:
-        _token_cache.pop(sid, None)
+    if marker:
+        _restore_cache.pop(marker, None)
     if user_id:
         _clear_chat(user_id)
     for key in list(st.session_state.keys()):
         del st.session_state[key]
+    # Clear marker from browser sessionStorage
+    _components.html(
+        "<script>try{window.parent.sessionStorage.removeItem('cf_marker');}catch(e){}</script>",
+        height=0,
+    )
 
 
 def is_authenticated() -> bool:
     if st.session_state.get("user") is not None:
         return True
-    # Restore from server-side token cache (keyed by Streamlit session ID).
-    # This survives HTML-link page navigation because Streamlit reconnects
-    # the same session ID for the same browser tab.
-    sid = _sid()
-    if sid and sid in _token_cache:
-        tokens = _token_cache[sid]
+
+    # Restore from process-level cache using a marker passed via URL param.
+    # This fires after the browser sessionStorage JS redirects back here.
+    marker = st.query_params.get("_cf_r")
+    if marker and marker in _restore_cache:
+        tokens = _restore_cache[marker]
         try:
             client = get_supabase_client()
             resp = client.auth.set_session(
@@ -109,15 +107,78 @@ def is_authenticated() -> bool:
             if resp and getattr(resp, "user", None):
                 st.session_state.user = resp.user
                 st.session_state.session = resp.session
-                _token_cache[sid] = {
+                st.session_state["_cf_marker"] = marker
+                _restore_cache[marker] = {
                     "access_token":  resp.session.access_token,
                     "refresh_token": resp.session.refresh_token,
                 }
+                for p in ("_cf_r", "_cf_tried"):
+                    if p in st.query_params:
+                        st.query_params.pop(p)
                 return True
         except Exception:
             pass
-        _token_cache.pop(sid, None)
+        _restore_cache.pop(marker, None)
+        for p in ("_cf_r", "_cf_tried"):
+            if p in st.query_params:
+                st.query_params.pop(p)
+
     return False
+
+
+def require_auth() -> None:
+    """
+    Drop-in replacement for `if not is_authenticated(): st.switch_page(login)`.
+
+    On first auth failure, injects JS to read the restore marker from
+    sessionStorage and redirect back to this page with ?_cf_r=MARKER.
+    On the second load the marker is in the URL, is_authenticated() restores
+    the session, and we return normally.  If sessionStorage has no marker
+    (brand-new visitor), the JS redirects straight to Login.
+    """
+    if is_authenticated():
+        return
+
+    if st.query_params.get("_cf_tried"):
+        # Restore was already attempted and failed — send to Login.
+        st.switch_page("pages/1_Login.py")
+        st.stop()
+
+    # First failure — ask the browser to look up the marker.
+    _components.html(
+        """<script>
+        (function() {
+          try {
+            var m = window.parent.sessionStorage.getItem('cf_marker');
+            var u = new URL(window.parent.location.href);
+            if (m) { u.searchParams.set('_cf_r', m); }
+            u.searchParams.set('_cf_tried', '1');
+            window.parent.location.replace(u.toString());
+          } catch(e) {
+            window.parent.location.replace('/1_Login');
+          }
+        })();
+        </script>""",
+        height=0,
+    )
+    st.markdown(
+        '<div style="display:flex;justify-content:center;align-items:center;'
+        'height:60vh;font-family:Inter,sans-serif;color:#717171;font-size:14px;">'
+        'Loading…</div>',
+        unsafe_allow_html=True,
+    )
+    st.stop()
+
+
+def write_session_marker() -> None:
+    """Call this once after a successful login to persist the marker in sessionStorage."""
+    marker = st.session_state.get("_cf_marker", "")
+    if not marker:
+        return
+    _components.html(
+        f"<script>try{{window.parent.sessionStorage.setItem('cf_marker','{marker}');}}catch(e){{}}</script>",
+        height=0,
+    )
 
 
 def get_user_id() -> str | None:

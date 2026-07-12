@@ -3,7 +3,7 @@ import streamlit as st
 
 from components.styles import inject_styles
 from components.nav import render_app_nav
-from utils.auth import is_authenticated, get_user_id
+from utils.auth import require_auth, get_user_id
 from utils.data_processor import get_connections
 from utils.llm import get_chat_response
 from utils.chat_store import _MSG_STORE, clear_user as _clear_user_msgs
@@ -17,8 +17,7 @@ st.set_page_config(
 
 inject_styles(hide_sidebar=True)
 
-if not is_authenticated():
-    st.switch_page("pages/1_Login.py")
+require_auth()
 
 render_app_nav(active="chat")
 

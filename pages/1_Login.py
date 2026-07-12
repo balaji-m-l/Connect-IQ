@@ -1,6 +1,6 @@
 import streamlit as st
 from components.styles import inject_styles
-from utils.auth import login, logout, signup, reset_password, is_authenticated
+from utils.auth import login, logout, signup, reset_password, is_authenticated, write_session_marker
 
 st.set_page_config(
     page_title="Connect-IQ – Sign In",
@@ -250,6 +250,7 @@ with form_col:
                     with st.spinner("Signing in…"):
                         ok, err = login(email, password)
                     if ok:
+                        write_session_marker()
                         st.switch_page("pages/2_Home.py")
                     else:
                         st.error(f"Sign-in failed: {err}")

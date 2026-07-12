@@ -3,7 +3,7 @@ import streamlit as st
 from components.styles import inject_styles, metric_tile
 from components.nav import render_app_nav
 from utils.auth import (
-    is_authenticated, get_user_id, get_display_name, get_user_email,
+    require_auth, get_user_id, get_display_name, get_user_email,
     get_user_headline, logout, update_profile, update_password, delete_account,
 )
 from utils.data_processor import (
@@ -20,8 +20,7 @@ st.set_page_config(
 
 inject_styles(hide_sidebar=True)
 
-if not is_authenticated():
-    st.switch_page("pages/1_Login.py")
+require_auth()
 
 render_app_nav(active="")
 
